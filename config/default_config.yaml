@@ -1,0 +1,37 @@
+app:
+  name: "Igris"
+  version: "0.1.0"
+  env: "development"
+
+displays:
+  primary: ":0"
+  virtual: ":99"
+  virtual_resolution:
+    width: 1920
+    height: 1080
+    depth: 24
+
+engine:
+  default_mode: "ghost" # "live" or "ghost"
+  max_loop_iterations: 25
+  verification_delay_seconds: 0.8
+  safety:
+    enable_mouse_override: true
+    mouse_move_threshold: 12
+    emergency_keys: ["Escape"]
+
+perception:
+  screenshot_format: "PNG"
+  max_dimension: 1920
+  enable_at_spi: true
+
+voice:
+  wake_word: "hey igris"
+  stt_engine: "groq" # or "local_whisper"
+  tts_engine: "edge_tts"
+  voice_name: "bn-BD-PradeepNeural" # default voice or English/Bengali bilingual
+
+remote:
+  host: "0.0.0.0"
+  port: 8080
+  enable_tunnel: false
