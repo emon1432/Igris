@@ -1,0 +1,59 @@
+{
+  "folders": [
+    {
+      "name": "Igris (Workspace Root)",
+      "path": "."
+    },
+    {
+      "name": "Core Engine (Backend)",
+      "path": "apps/core-engine"
+    },
+    {
+      "name": "Companion Mobile (Native App)",
+      "path": "apps/companion-mobile"
+    },
+    {
+      "name": "Companion Web (Mobile Remote)",
+      "path": "apps/companion-web"
+    },
+    {
+      "name": "Desktop Overlay (HUD)",
+      "path": "apps/desktop-overlay"
+    },
+    {
+      "name": "Agents & Memory",
+      "path": ".agents"
+    },
+    {
+      "name": "Documentation",
+      "path": "docs"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true,
+      "**/Thumbs.db": true,
+      "**/__pycache__": true,
+      "**/*.pyc": true
+    },
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "markdown.preview.breaks": true
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.vscode-pylance",
+      "charliermarsh.ruff",
+      "yzhang.markdown-all-in-one",
+      "bierner.markdown-mermaid"
+    ]
+  }
+}
