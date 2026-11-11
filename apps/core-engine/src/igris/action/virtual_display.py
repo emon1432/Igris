@@ -1,14 +1,22 @@
 """Virtual display management using Xvfb on Linux."""
 
+import logging
 import os
 import signal
+import socket
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import Optional
-import logging
 
 logger = logging.getLogger("igris.action.virtual_display")
+
+
+def _get_x11_socket_path(display_num: int) -> Path:
+    """Resolve the X11 domain socket path using secure system temporary directory resolution."""
+    base_tmp = Path(tempfile.gettempdir()).resolve()
+    return base_tmp / ".X11-unix" / f"X{display_num}"
 
 
 class VirtualDisplayError(Exception):
@@ -45,39 +53,53 @@ class VirtualDisplayManager:
     @property
     def socket_path(self) -> Path:
         """Return the expected X11 Unix socket path."""
-        return Path(f"/tmp/.X11-unix/X{self.display_number}")
-
-    @property
-    def lock_path(self) -> Path:
-        """Return the X11 lock file path."""
-        return Path(f"/tmp/.X{self.display_number}-lock")
+        return _get_x11_socket_path(self.display_number)
 
     def is_active(self) -> bool:
-        """Check if the X server socket exists and is responsive."""
-        if not self.socket_path.exists():
-            return False
-
-        # Verify using xdpyinfo if available, or socket connectivity check
+        """Check if the X server is running and responsive."""
+        # Probe responsiveness via xdpyinfo if available
         try:
             res = subprocess.run(
                 ["xdpyinfo", "-display", self.display],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                timeout=1,
+                timeout=0.8,
             )
-            return res.returncode == 0
+            if res.returncode == 0:
+                return True
         except (subprocess.TimeoutExpired, FileNotFoundError):
-            # Fallback to checking socket existence
-            return self.socket_path.exists()
+            pass
+
+        # Probe responsiveness via Unix domain socket connection
+        sock = self.socket_path
+        if sock.exists():
+            try:
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                    s.settimeout(0.3)
+                    s.connect(str(sock))
+                    return True
+            except (OSError, socket.error):
+                return False
+
+        return False
 
     @staticmethod
     def find_free_display(start: int = 99, max_search: int = 20) -> str:
-        """Find the next free X display number."""
+        """Find the next free X display number using socket and responsiveness testing."""
         for d in range(start, start + max_search):
-            sock = Path(f"/tmp/.X11-unix/X{d}")
-            lock = Path(f"/tmp/.X{d}-lock")
-            if not sock.exists() and not lock.exists():
-                return f":{d}"
+            sock = _get_x11_socket_path(d)
+            if not sock.exists():
+                try:
+                    res = subprocess.run(
+                        ["xdpyinfo", "-display", f":{d}"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        timeout=0.3,
+                    )
+                    if res.returncode != 0:
+                        return f":{d}"
+                except (subprocess.TimeoutExpired, FileNotFoundError):
+                    return f":{d}"
         raise VirtualDisplayError("No free virtual displays found in search range.")
 
     def start(self, timeout_seconds: float = 5.0) -> None:
@@ -143,7 +165,7 @@ class VirtualDisplayManager:
         )
 
     def stop(self) -> None:
-        """Terminate the Xvfb process and clean up sockets."""
+        """Terminate the Xvfb process."""
         if self.process:
             logger.info("Stopping virtual display %s (PID %s)...", self.display, self.process.pid)
             try:
@@ -157,14 +179,6 @@ class VirtualDisplayManager:
             self.process = None
 
         self._is_running = False
-
-        # Clean lingering lock files if safe
-        if self.lock_path.exists():
-            try:
-                self.lock_path.unlink()
-            except OSError:
-                pass
-
         logger.info("Virtual display %s stopped.", self.display)
 
     def __enter__(self) -> "VirtualDisplayManager":

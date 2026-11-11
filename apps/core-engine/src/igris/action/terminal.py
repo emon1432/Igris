@@ -33,7 +33,7 @@ class AsyncTerminalRunner:
     """Asynchronously executes bash commands with display awareness and safety guardrails."""
 
     BLOCKED_PATTERNS = [
-        re.compile(r"\brm\s+-[a-zA-Z]*[rf][a-zA-Z]*\s+(?:/|/\*|~|\$HOME)(?:\s|$|;)"),
+        re.compile(r"\brm\s+-[a-zA-Z]{1,8}\s+(?:/(?:\*|\s|$|;)|~|\$HOME)"),
         re.compile(r"\bmkfs(?:\.[a-z0-9]+)?\s+"),
         re.compile(r"\bdd\s+if=.*of=/dev/(?:sd[a-z]|nvme[0-9]n[0-9])"),
         re.compile(r":\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:"),  # fork bomb

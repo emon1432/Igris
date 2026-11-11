@@ -3,7 +3,6 @@
 import json
 import logging
 import os
-import re
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from igris.perception.screen import ScreenFrame
@@ -122,8 +121,16 @@ Observe the current screen state and output the single next optimal action in JS
     def _parse_response(self, text: str) -> VisualAction:
         """Parse model JSON response into VisualAction model."""
         # Strip code markdown fences if present
-        clean = re.sub(r"^```(?:json)?\s*", "", text.strip())
-        clean = re.sub(r"\s*```$", "", clean)
+        clean = text.strip()
+        if clean.startswith("```"):
+            if clean.startswith("```json"):
+                clean = clean[7:]
+            else:
+                clean = clean[3:]
+        clean = clean.strip()
+        if clean.endswith("```"):
+            clean = clean[:-3]
+        clean = clean.strip()
 
         try:
             data = json.loads(clean)
