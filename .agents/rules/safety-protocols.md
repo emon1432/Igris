@@ -1,15 +1,15 @@
 # Safety & Permission Protocols
 
-Igris এজেন্ট ওএস লেভেলে সরাসরি মাউস, কিবোর্ড ও টার্মিনাল অ্যাক্সেস করতে পারে। নিরাপত্তা ও ব্যবহারকারীর নিয়ন্ত্রণের স্বার্থে নিচের প্রোটোকলগুলো কঠোরভাবে মানতে হবে:
+Igris has direct low-level access to mouse, keyboard, and terminal execution. To guarantee user safety and prevent system corruption, all automated operations must strictly enforce these protocols:
 
-## ১. ধ্বংসাত্মক অ্যাকশন রেস্ট্রিকশন (Destructive Action Restriction)
-* **ফাইল ডিলিট বা ওভাররাইট:** `rm -rf`, ফাইল ট্র্যাশ বা সম্পূর্ণ কোড ফাইল ওভাররাইট করার পূর্বে ব্যবহারকারীকে ভয়েস বা কনফার্মেশন প্রম্পট দিয়ে অনুমতি নিতে হবে।
-* **সিস্টেম কনফিগারেশন:** `sudo`, সিস্টেম প্যাকেজ আনইনস্টল বা কার্নেল কনফিগারেশন পরিবর্তনের কমান্ড নিজে থেকে চালানো যাবে না।
-* **সেনসিটিভ ক্রেডেনশিয়াল:** পাসওয়ার্ড ফিল্ড, প্রাইভেট কি (`.env`, `id_rsa`) বা ক্রেডিট কার্ডের ডেটা কখনোই লগ বা এক্সটার্নাল মডেলে সেন্ড করা যাবে না।
+## 1. Destructive Action Restrictions
+* **File Deletion or Overwrite:** Permanent deletions (`rm -rf`, file trashing) or bulk source code overwrites require explicit verbal or prompt confirmation from the user.
+* **System Configuration:** Running commands requiring `sudo`, altering kernel parameters, or uninstalling system packages without explicit user instructions is strictly prohibited.
+* **Sensitive Credentials:** Password fields, private keys (`.env`, `id_rsa`), and payment details must never be logged or transmitted to external models.
 
-## ২. ইমার্জেন্সি ইন্টারাপশন (Emergency Stop & User Override)
-* **ফিজিক্যাল মাউস মুভমেন্ট:** লাইভ কো-পাইলট মোডে থাকাকালীন ব্যবহারকারী যদি তার ফিজিক্যাল মাউস ১০ পিক্সেলের বেশি নাড়াচাড়া করেন, তবে এজেন্ট তাৎক্ষণিকভাবে তার মাউস কন্ট্রোল বন্ধ করবে।
-* **হটকি ইন্টারাপ্ট:** কীবোর্ডের `Escape` কি অথবা `Ctrl+Shift+Q` চাপলে চলমান যেকোনো অটোনোমাস অ্যাকশন লুপ বন্ধ হয়ে যাবে।
+## 2. Emergency Override & Interruption
+* **Physical Mouse Movement:** During Live Co-Pilot mode, if the user moves the physical mouse by more than 10 pixels, Igris immediately yields mouse control and pauses execution.
+* **Hotkey Interruption:** Pressing `Escape` or `Ctrl+Shift+Q` halts the active autonomous action loop immediately.
 
-## ৩. অ্যাকশন অডিট লগিং (Auditability)
-* এজেন্টের প্রতিটি ক্লিক, ড্র্যাগ, টেক্সট টাইপিং এবং শেল এক্সিকিউশন `logs/actions.jsonl` ফাইলে স্ক্রিনশটের রেফারেন্সসহ রেকর্ড রাখতে হবে।
+## 3. Action Audit Logging
+* Every click, drag, keystroke, and shell execution must be recorded in `logs/actions.jsonl` with timestamps and frame references for full auditability.

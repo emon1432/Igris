@@ -1,19 +1,19 @@
 # Dual-Mode Routing Policy (Live vs. Ghost Mode)
 
-Igris এজেন্টের যেকোনো টাস্ক এক্সিকিউট করার আগে অবশ্যই নির্ধারণ করতে হবে কোন মোডে কাজটি পরিচালিত হবে:
+Before executing any automated task, Igris must determine the target display environment based on these criteria:
 
-## ১. লাইভ কো-পাইলট মোড সিলেকশন ক্রাইটেরিয়া (When to use Live Mode)
-নিচের যেকোনো একটি শর্ত পূরণ হলে `DISPLAY=:0` (লাইভ মোড) সিলেক্ট হবে:
-1. ব্যবহারকারী স্পষ্টভাবে নির্দেশ দিয়েছেন: *"আমার সামনে করো"*, *"Watch this"*, *"Take over the screen"*, *"এখানে ক্লিক করো"* ইত্যাদি।
-2. কাজটি রিয়েল-টাইম স্ক্রিন কনটেক্সটের সাথে সরাসরি সম্পর্কিত (যেমন: ব্যবহারকারী কোনো ইমেজ এডিটর, ক্যানভাস, বা বর্তমানে খোলা ব্রাউজার ট্যাবে কিছু দেখতে বা বদলাতে বলছেন)।
-3. ব্যবহারকারী লাইভ কোলাবোরেশন চাইছেন।
+## 1. Live Co-Pilot Mode Selection (`DISPLAY=:0`)
+Selected when any of the following conditions are met:
+1. The user explicitly requests live execution (e.g., *"Do this in front of me"*, *"Watch this"*, *"Take over the screen"*, *"Click here"*).
+2. The task requires real-time interaction with an application already open on the primary screen (e.g., GIMP, Photoshop, active browser tab, code editor review).
+3. The user wants visual collaboration.
 
-## ২. ঘোস্ট মোড সিলেকশন ক্রাইটেরিয়া (When to use Ghost Mode)
-নিচের ক্ষেত্রে স্বয়ংক্রিয়ভাবে `DISPLAY=:99` (Xvfb Virtual Display) সিলেক্ট হবে:
-1. ব্যবহারকারী বর্তমানে অন্য কোনো ফোকাসড কাজ করছেন (ভিডিও প্লেয়ার রানিং, গেম রানিং, বা ফুলস্ক্রিন অ্যাপ)।
-2. এমন কাজ যা ব্যবহারকারীর স্ক্রিনে দেখার প্রয়োজন নেই (যেমন: ব্যাকগ্রাউন্ড মেসেজিং, মেইল গোছানো, ফাইল ডাউনলোড ও রিঅর্গানাইজ করা)।
-3. ব্যবহারকারী যখন বাইরে থেকে মোবাইল রিমোটের মাধ্যমে কমান্ড দিয়েছেন।
+## 2. Ghost Mode Selection (`DISPLAY=:99` via Xvfb)
+Selected automatically when:
+1. The user is actively engaged in a primary task (e.g., playing a movie, playing a game, writing code).
+2. The task does not require visual supervision (e.g., background messaging, checking and organizing emails, downloading files, compiling code).
+3. The command originates from the mobile companion app while the user is away.
 
-## ৩. মোড ট্রানজিশন রুল (Mode Switching Rule)
-* লাইভ মোড থেকে ব্যাকগ্রাউন্ডে পাঠাতে বললে উইন্ডো বা প্রসেস ভার্চুয়াল ডিসপ্লেতে মাইগ্রেট করবে।
-* ঘোস্ট মোডের কাজ শেষ হলে অডিও/নোটিফিকেশনে জানাবে, কোনো পপ-আপ স্ক্রিন ইন্টারাপ্ট করবে না।
+## 3. Mode Switching Rules
+* If requested to move a live task to the background, windows or processes should migrate to the virtual display.
+* Ghost mode tasks announce completion via audio or notification without generating intrusive screen pop-ups on the primary display.

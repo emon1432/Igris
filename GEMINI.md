@@ -1,5 +1,4 @@
 # Language and Documentation Guidelines
 
-- **Primary Communication Language:** সমস্ত আলোচনা, ব্যাখ্যা, প্রশ্ন-উত্তর এবং কনভারসেশন বাংলায় (Bengali) হতে হবে।
-- **Technical Keywords:** টেকনিক্যাল পরিভাষা, লাইব্রেরি/টুলসের নাম, কোড এলিমেন্ট, এবং আর্কিটেকচারাল টার্মস (যেমন: API, VLM, Terminal, Bash, WebSockets, WebRTC, Git Push, Accessibility Tree ইত্যাদি) ইংরেজিতে অপরিবর্তিত রাখতে হবে।
-- **Implementation Plans & Artifacts:** সমস্ত ধরনের Implementation Plan, Roadmap, Design Architecture এবং ডকুমেন্টেশন বাংলায় প্রস্তুত করতে হবে (Technical Keywords ইংরেজি রেখে)।
+- **Primary Communication Language (Chat/Conversation):** All conversational explanations, discussions, questions, answers, and interactions with the user must be in **Bengali**.
+- **Application Files & Codebase Language:** **STRICTLY ENGLISH ONLY**. All codebase files, source code, inline comments, docstrings, commits, configuration files, and documentation (including `README.md`, `.agents/`, `docs/`, specifications, and architectural documents) must be written in clean, professional **English**. No Bengali text is permitted inside the application or repository files.

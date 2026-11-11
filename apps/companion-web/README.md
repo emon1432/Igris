@@ -1,7 +1,7 @@
-# Igris Mobile & Remote Companion Web App
+# Igris Mobile & Remote Companion Web App (`apps/companion-web`)
 
-> **Scope:** Mobile & Web remote client for Igris Autonomous OS Operator.  
-> **Tech Stack:** Progressive Web App (PWA) / Lightweight Single Page Client with WebRTC audio streaming and WebSocket command transport.
+> **Module Role:** Lightweight browser/PWA client for Igris Autonomous OS Operator.  
+> **Tech Stack:** Progressive Web App (PWA) / Single Page Application with WebRTC audio and WebSocket control transport.
 
-## উদ্দেশ্য (Purpose)
-এই ক্লায়েন্টটির মাধ্যমে ব্যবহারকারী বাইরে থাকা অবস্থায় মোবাইল ফোন থেকে রিয়েল-টাইমে বাসার লিনাক্স পিসিতে রানিং Igris ডেমনকে ভয়েস বা টেক্সট কমান্ড দিতে পারবেন এবং লাইভ রেসপন্স শুনতে পাবেন।
+## Purpose
+Enables users to connect to and command the host Igris daemon from any web browser without installing a native app. Provides text prompt fallback, audio streaming, and live execution previews.

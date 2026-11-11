@@ -1,78 +1,78 @@
-# প্রজেক্ট ইগ্রিস (Project Igris)
+# Project Igris
 
-> **লিনাক্স-ফার্স্ট ইউনিভার্সাল অটোনোমাস ওএস অপারেটর ও কো-পাইলট (Universal Autonomous Linux OS Operator & Co-Pilot)**
-
----
-
-## ১. প্রজেক্ট পরিচিতি (Introduction)
-**Igris** হলো একটি স্বয়ংক্রিয় কম্পিউটার ইউজ এজেন্ট (Universal Computer Use Agent)। এটি কোনো নির্দিষ্ট অ্যাপ্লিকেশনের হার্ডকোডেড API-এর ওপর নির্ভরশীল না হয়ে স্ক্রিন ভিশন (Screen Vision), লিনাক্স এক্সেসিবিলিটি ট্রি (AT-SPI), ভার্চুয়াল ডিসপ্লে আইসোলেশন (Xvfb) এবং মাউস-কিবোর্ড সিমুলেশনের মাধ্যমে একজন মানুষের মতো যেকোনো ডেস্কটপ টাস্ক সম্পন্ন করতে পারে।
+> **Linux-First Universal Autonomous OS Operator & Co-Pilot**
 
 ---
 
-## ২. ডুয়াল-মোড আর্কিটেকচার (Dual-Mode Architecture)
-
-* **লাইভ কো-পাইলট মোড (Live Co-Pilot Mode - Astra Style):**
-  - আপনার বর্তমান স্ক্রিনে (`DISPLAY=:0`) মাউস-কিবোর্ড নাড়িয়ে আপনার চোখের সামনে কাজ সম্পন্ন করে।
-  - ফটোশপ, ইমেজ এডিটিং, বা কোড এডিটরে সরাসরি কাজ করার জন্য আদর্শ।
-  - **Emergency Override:** আপনি ফিজিক্যাল মাউস নাড়ালে বা `Escape` কি চাপলে স্বয়ংক্রিয়ভাবে কন্ট্রোল আপনার কাছে ফিরে আসে।
-
-* **ঘোস্ট মোড (Ghost / Virtual Lab Mode):**
-  - একটি অদৃশ্য ব্যাকগ্রাউন্ড ভার্চুয়াল ডিসপ্লেতে (`DISPLAY=:99` via Xvfb) সম্পূর্ণ স্বাধীনভাবে কাজ করে।
-  - আপনি মুভি দেখুন বা কাজ করুন—আপনার স্ক্রিনে কোনো পপ-আপ বা মাউস ইন্টারাপশন হবে না।
+## 1. Overview
+**Igris** is an autonomous Computer Use agent engineered for Linux. Instead of relying on rigid, app-specific APIs, Igris operates like a human user by combining Screen Vision (VLM), the Linux Accessibility Tree (AT-SPI), Virtual Display Isolation (Xvfb), and mouse/keyboard event injection to execute arbitrary desktop workflows.
 
 ---
 
-## ৩. মাল্টি-অ্যাপ মনোরেপো কাঠামো (Multi-App Monorepo Workspace)
+## 2. Dual-Mode Execution Architecture
+
+* **Live Co-Pilot Mode (Foreground / Astra Style):**
+  - Operates directly on the user's active screen (`DISPLAY=:0`).
+  - Ideal for real-time collaboration during creative tasks (e.g., image manipulation in GIMP/Photoshop, UI review in Figma, or live code debugging).
+  - **Emergency Override:** Moving the physical mouse or pressing `Escape` immediately releases control back to the user.
+
+* **Ghost Mode (Background / Isolated Virtual Lab):**
+  - Operates inside an invisible virtual framebuffer (`DISPLAY=:99` via Xvfb).
+  - Completes background tasks (e.g., messaging on WhatsApp, organizing files, parsing emails, background test runs) with zero disruption to the user's active desktop, movies, or gaming.
+
+---
+
+## 3. Workspace Architecture (Multi-App Monorepo)
 
 ```text
 /home/emon1432/Documents/Igris/
-├── AGENTS.md                       # রুট এআই ডিরেক্টিভ ও মাল্টি-পিসি কন্টিনিউটি প্রোটোকল
-├── GEMINI.md                       # সার্বজনীন ভাষা ও ডকুমেন্টেশন রুল
-├── Igris.code-workspace            # মাল্টি-রুট আইডিই ওয়ার্কস্পেস কনফিগারেশন
+├── AGENTS.md                       # Root AI agent directive & multi-PC protocol
+├── GEMINI.md                       # Language & communication guidelines
+├── Igris.code-workspace            # Multi-root IDE workspace configuration
 │
-├── .agents/                        # এজেন্টের লিভিং মেমোরি, রুলস ও স্কিলস
-│   ├── memory/                     # মাল্টি-পিসি কন্টিনিউটি মেমোরি
-│   │   ├── HANDOVER.md             # লাইভ সেশন স্টেট ও পরবর্তী কাজের তালিকা
-│   │   ├── DECISIONS.md            # আর্কিটেকচারাল ডিসিশন রেকর্ডস (ADRs)
-│   │   └── ARCHITECTURE.md         # সিস্টেম আর্কিটেকচার ব্লুপ্রিন্ট
-│   ├── rules/                      # নিরাপত্তা ও মোড সিলেকশন পলিসি
-│   └── skills/                     # ভার্চুয়াল ডিসপ্লে ও পারসেপশন স্কিলস
+├── .agents/                        # Agent living memory, guardrails, & runbooks
+│   ├── memory/                     # Multi-PC continuity memory
+│   │   ├── HANDOVER.md             # Active sprint status & task handover
+│   │   ├── DECISIONS.md            # Architecture Decision Records (ADRs)
+│   │   └── ARCHITECTURE.md         # Full system architecture blueprint
+│   ├── rules/                      # Safety & mode routing policies
+│   └── skills/                     # Virtual display & screen perception skills
 │
-├── apps/                           # অ্যাপ্লিকেশনের মডিউলার ক্লায়েন্ট ও ইঞ্জিন
-│   ├── core-engine/                # মূল পাইথন ব্যাকএন্ড ডেমন ও ওএস ড্রাইভার
-│   ├── companion-mobile/           # ডেডিকেটেড মোবাইল ক্লায়েন্ট (Flutter / React Native)
-│   ├── companion-web/              # লাইটওয়েট ওয়েব ক্লায়েন্ট (PWA / WebSocket)
-│   └── desktop-overlay/            # লাইভ মোড লেজার মার্কার ও HUD ওভারলে
+├── apps/                           # Modular application suite
+│   ├── core-engine/                # Python backend daemon, VLM brain, & OS drivers
+│   ├── companion-mobile/           # Dedicated mobile client (Flutter / React Native)
+│   ├── companion-web/              # Lightweight web client (PWA / WebSockets)
+│   └── desktop-overlay/            # Live mode laser pointer & HUD overlay
 │
-├── docs/                           # টেকনিক্যাল ডকুমেন্টেশন ও গবেষণা
-│   ├── architecture/               # ডুয়াল মোড ও ইঞ্জিন স্পেক্স
-│   ├── roadmap/                    # ৫-ফেজের এক্সিকিউশন রোডম্যাপ
-│   ├── specs/                      # নিরাপত্তা ও আইসোলেশন স্পেসিফিকেশন
-│   └── research/                   # লিনাক্স ডেস্কটপ অটোমেশন রিসার্চ
+├── docs/                           # Technical documentation & research
+│   ├── architecture/               # Dual-mode engine specifications
+│   ├── roadmap/                    # 5-phase execution roadmap
+│   ├── specs/                      # Safety & display isolation specs
+│   └── research/                   # Linux desktop automation research
 │
-├── packages/                       # শেয়ার্ড ডেটা টাইপ ও RPC প্রটোকল
-└── scripts/                        # ডিপেন্ডেন্সি ও সিস্টেম স্ক্রিপ্টস
-    └── setup_system_deps.sh        # ওএস অটোমেশন প্যাকেজ ইনস্টলার
+├── packages/                       # Shared data types & RPC protocol schemas
+└── scripts/                        # Development & system setup scripts
+    └── setup_system_deps.sh        # Linux OS automation package installer
 ```
 
 ---
 
-## ৪. মাল্টি-পিসি লিভিং মেমোরি প্রোটোকল (Multi-PC Continuity Protocol)
-এই রিপোজিটরিতে কাজ করার সময় সকল AI এজেন্টকে বাধ্যতামূলকভাবে নিচের ৩টি ধাপ অনুসরণ করতে হবে:
-1. **Session Kickoff:** সেশন শুরুর সাথে সাথে `.agents/memory/HANDOVER.md` পড়া এবং রানিং স্প্রিন্ট বোঝা।
-2. **Architectural Guardrails:** কোনো মেজর সিদ্ধান্ত নেওয়ার আগে `.agents/memory/DECISIONS.md` ও `ARCHITECTURE.md` কনসাল্ট করা।
-3. **Session Wrap-up:** সেশন শেষ করার পূর্বে অবশ্যই `HANDOVER.md` ফাইলটি আপডেট করে কোন কোন ফাইল এডিট হয়েছে এবং পরবর্তী কাজ কী তা লিপিবদ্ধ করা।
+## 4. Multi-PC Living Memory Protocol
+To ensure continuity across multiple machines and AI sessions:
+1. **Session Kickoff:** Read `.agents/memory/HANDOVER.md` to understand active priorities.
+2. **Architectural Guardrails:** Consult `.agents/memory/DECISIONS.md` before making design changes.
+3. **Session Wrap-Up:** Update `HANDOVER.md` with modified files and immediate next steps.
 
 ---
 
-## ৫. ইনস্টলেশন ও শুরু করার পদ্ধতি (Getting Started)
+## 5. Installation & Getting Started
 
-### ৫.১ ওএস সিস্টেম ডিপেন্ডেন্সি ইনস্টল:
+### 5.1 Install System Dependencies (Linux)
 ```bash
 ./scripts/setup_system_deps.sh
 ```
 
-### ৫.২ কোর ইঞ্জিন সেটআপ:
+### 5.2 Set Up Core Engine
 ```bash
 cd apps/core-engine
 python3 -m venv venv
@@ -80,11 +80,11 @@ source venv/bin/activate
 pip install -e .
 ```
 
-### ৫.৩ রান টেস্ট:
+### 5.3 Test Execution
 ```bash
-# ভার্চুয়াল ঘোস্ট মোডে রান (ব্যাকগ্রাউন্ড)
+# Run in Ghost Mode (Background virtual display)
 python -m igris.cli --mode ghost
 
-# লাইভ কো-পাইলট মোডে রান (আপনার স্ক্রিনে)
+# Run in Live Co-Pilot Mode (Primary display)
 python -m igris.cli --mode live
 ```

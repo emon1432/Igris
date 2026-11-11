@@ -1,21 +1,21 @@
 # Igris Companion Mobile App (`apps/companion-mobile`)
 
-> **মডিউল পরিচিতি:** Igris-এর ডেডিকেটেড মোবাইল ক্লায়েন্ট (Android & iOS)।  
-> **প্রস্তাবিত টেক স্ট্যাক:** Flutter (Dart) অথবা React Native (Expo) + WebRTC অডিও ইঞ্জিন + WebSocket কমান্ড ব্রিজ।
+> **Module Role:** Dedicated native mobile client for Igris (Android & iOS).  
+> **Tech Stack:** Flutter (Dart) or React Native (Expo) + WebRTC audio streaming + WebSocket command bridge.
 
 ---
 
-## ১. উদ্দেশ্য ও ব্যবহার (Purpose & Core Experience)
-এই মোবাইল অ্যাপটি ব্যবহার করে আপনি যখন বাইরে থাকবেন (যেমন হাঁটার সময় বা গাড়িতে):
-* **হ্যান্ডস-ফ্রি ব্যাকগ্রাউন্ড ভয়েস:** ব্লুটুথ ইয়ারবাড বা ফোনের মাইকে সরাসরি কথা বললে সেই ভয়েস রিয়েল-টাইমে বাসার পিসিতে চলে যাবে।
-* **লক-স্ক্রিন উইজেট ও পুশ-টু-টক (Push-to-Talk):** ফোন আনলক না করেই বাটন চেপে সাথে সাথে Igris-কে কমান্ড দেওয়া যাবে।
-* **লাইভ অডিও রেসপন্স:** Igris-এর উত্তর আপনার হেডফোনে ফিরে আসবে।
-* **লাইভ পিক মোড (Peek View):** পিসির ভার্চুয়াল স্ক্রিনে বা হোম স্ক্রিনে কী ঘটছে তা মোবাইলের স্ক্রিনে ছোট প্রিভিউ হিসেবে লাইভ দেখা যাবে।
+## 1. Overview & Core Experience
+This mobile client enables full remote voice commanding and monitoring of your host Linux workstation while on the go:
+* **Hands-Free Background Voice:** Talk directly through Bluetooth earbuds or mobile mic; audio streams to the home PC in real time.
+* **Lock-Screen Widget & Push-to-Talk:** Send voice commands without unlocking the device.
+* **Live Audio Feedback:** Spoken feedback from Igris streams directly back to your headphones.
+* **Peek Screen Mode:** Stream a lightweight, low-bandwidth video/screenshot feed of what Igris is doing on the virtual or primary display.
 
 ---
 
-## ২. মূল আর্কিটেকচারাল ফিচারসমূহ
-1. **WebRTC Ultra-Low Latency Audio Stream:** জিরো ডিলেতে কথা বলা ও শোনার জন্য WebRTC পাইপলাইন।
-2. **Secure Network Transport:** Tailscale / WireGuard টানেল বা Cloudflare mTLS-এর মাধ্যমে বাসার পিসির সাথে সরাসরি সুরক্ষিত পিয়ার-টু-পিয়ার সংযোগ।
-3. **Background Audio Service:** স্ক্রিন অফ থাকলেও বা পকেটে ফোন থাকলেও ব্যাকগ্রাউন্ড কানেকশন সচল থাকবে।
-4. **Push Notifications & Alerts:** কোনো লং-রানিং টাস্ক বা কোড পুশ শেষ হলে তাৎক্ষণিক নোটিফিকেশন পাঠানো।
+## 2. Core Architecture
+1. **WebRTC Ultra-Low Latency Audio Stream:** Sub-second bi-directional voice communication.
+2. **Secure Network Transport:** Direct peer-to-peer connection via Tailscale / WireGuard or Cloudflare Tunnel with mTLS.
+3. **Background Audio Service:** Maintains connection while the screen is off or the phone is in your pocket.
+4. **Push Notifications:** Instant alerts upon completion of long-running workflows or task checkpoints.

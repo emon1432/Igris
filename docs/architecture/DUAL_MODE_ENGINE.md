@@ -1,41 +1,41 @@
-# Dual-Mode Execution Engine (Live vs Ghost Mode)
+# Dual-Mode Execution Engine (Live vs. Ghost Mode)
 
-## ভূমিকা
-Igris-এর অন্যতম প্রধান অনন্য বৈশিষ্ট্য হলো এর **ডুয়াল-মোড ইঞ্জিন**। একই সিস্টেম ব্যবহারকারীর কাজের ধরন অনুযায়ী দুটি ভিন্ন মোডে চালিত হতে পারে।
-
----
-
-## ১. মোড ১: লাইভ কো-পাইলট মোড (Live Co-Pilot Mode)
-
-### ১.১ লক্ষ্য ও ক্ষেত্র
-* ক্রিয়েটিভ ও ইন্টারঅ্যাকটিভ কাজ (যেমন: ফটোশপ, ব্লেন্ডার, ব্রাউজার ডিজাইনিং বা কোড এডিটিং)।
-* ব্যবহারকারী যখন এজেন্টকে সরাসরি তার স্ক্রিনে কাজ করতে দেখতে চান।
-
-### ১.২ ড্রাইভার মেকানিজম
-* **Display Target:** `DISPLAY=:0`
-* **Cursor Control:** `pyautogui` / `xdotool` দিয়ে সরাসরি আসল মাউস মুভ ও ক্লিক।
-* **Laser Overlay:** ক্লিক করার পূর্বে `apps/desktop-overlay` টার্গেট পজিশনে একটি অর্ধ-স্বচ্ছ রিং ফ্ল্যাশ করবে, যাতে ব্যবহারকারী দেখতে পান এজেন্ট কোথায় নজর দিচ্ছে।
-
-### ১.৩ সেফটি ওভাররাইড (Emergency Brake)
-* `pynput` লিসেনার দিয়ে মাউস ও কিবোর্ডের লাইভ স্টেট ট্র্যাক করা হয়।
-* যদি ব্যবহারকারী ফিজিক্যাল মাউসে হাত দেন বা `Escape` কি প্রেস করেন:
-  1. এজেন্টের রানিং লুপ সাথে সাথে পজ (Pause) হবে।
-  2. মাউসের কন্ট্রোল ব্যবহারকারীর হাতে চলে যাবে।
-  3. এজেন্ট ভয়েসে বলবে: *"কন্ট্রোল আপনার হাতে দেওয়া হলো।"*
+## Overview
+A defining capability of Igris is its **Dual-Mode Engine**, allowing the system to operate either visibly on the primary screen or silently inside an isolated background environment.
 
 ---
 
-## ২. মোড ২: ঘোস্ট ভার্চুয়াল মোড (Ghost Virtual Lab Mode)
+## 1. Live Co-Pilot Mode (Foreground / Astra Style)
 
-### ২.১ লক্ষ্য ও ক্ষেত্র
-* ব্যাকগ্রাউন্ড অটোমেশন (যেমন: হোয়াটসঅ্যাপে মেসেজ পাঠানো, ফাইল অর্গানাইজ করা, মেইল সামারি তৈরি করা, কোডবেজে টার্মিনাল রান করা)।
-* ব্যবহারকারী যখন অন্য কোনো গুরুত্বপূর্ণ কাজ (যেমন মুভি দেখা বা মিটিংয়ে থাকা) করছেন।
+### 1.1 Objectives & Use Cases
+* Creative workflows (e.g., GIMP, Photoshop, Blender, Figma UI editing, browser inspection).
+* Real-time collaborative pairing where the user explicitly requests visual assistance.
 
-### ২.২ আর্কিটেকচারাল মেকানিজম
-* **Virtual Framebuffer:** `Xvfb` ব্যাকগ্রাউন্ড প্রসেস হিসেবে চালু থাকবে (`DISPLAY=:99`)।
-* **Resolution:** ১৯২০x১০৮০ (ফুল এইচডি) রেজোলিউশনে ২৪-বিট কালার সহ।
-* **App Sandbox:** কোনো অ্যাপ ওপেন হলে তা ভার্চুয়াল ডিসপ্লেতে রান হবে:
+### 1.2 Execution Mechanics
+* **Target Display:** `DISPLAY=:0`
+* **Cursor Injection:** `pyautogui` / `xdotool` dispatching real hardware events.
+* **Laser Overlay:** Before clicking, `apps/desktop-overlay` renders a brief semi-transparent highlight over the target coordinate.
+
+### 1.3 Emergency Interlock
+* Background listener continuously monitors hardware pointer coordinates.
+* If the user moves the physical mouse or presses `Escape`:
+  1. The active automation loop halts immediately.
+  2. Input control returns to the user with zero resistance.
+  3. Spoken notification confirms: *"Control returned to user."*
+
+---
+
+## 2. Ghost Mode (Background / Isolated Virtual Lab)
+
+### 2.1 Objectives & Use Cases
+* Background tasks (e.g., WhatsApp messaging, file organization, email digest generation, test execution).
+* Operating while the user watches a movie, attends a meeting, or plays games.
+
+### 2.2 Architectural Mechanics
+* **Virtual Framebuffer:** Managed by `Xvfb` running on `DISPLAY=:99`.
+* **Resolution:** 1920x1080 24-bit truecolor.
+* **App Sandboxing:** Applications are launched under the virtual display socket:
   ```bash
   DISPLAY=:99 <command> &
   ```
-* **Isolation:** ব্যবহারকারীর প্রধান মনিটরে কোনো উইন্ডো আসবে না, মাউস নড়বে না, অডিও ইন্টারাপশন হবে না।
+* **Isolation:** Zero mouse displacement, window pop-ups, or audio interference on the primary screen.

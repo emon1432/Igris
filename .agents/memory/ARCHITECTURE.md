@@ -1,41 +1,41 @@
 # System Architecture Specification (`ARCHITECTURE.md`)
 
-> **Protocol Rule:** এই ফাইলটি Igris-এর কেন্দ্রীয় আর্কিটেকচারাল ব্লুপ্রিন্ট। সিস্টেমে কোনো মেজর সাবসিস্টেম যুক্ত করার সময় এই স্পেসিফিকেশন আপডেট করতে হবে।
+> **Protocol Rule:** This document serves as the master architectural reference for Igris. Any major subsystem addition or architectural modification must be reflected here.
 
 ---
 
-## ১. এন্ড-টু-এন্ড সিস্টেম টপোলজি (End-to-End System Topology)
+## 1. End-to-End System Topology
 
 ```mermaid
 flowchart TD
-    subgraph Clients ["১. ক্লায়েন্ট ও ইনপুট চ্যানেল"]
-        MIC["পিসি মাইক্রোফোন (Wake-Word + STT)"]
-        MOBILE["মোবাইল ক্লায়েন্ট (WebRTC / Tailscale)"]
-        CLI["CLI কন্ট্রোলার"]
+    subgraph Clients ["1. Clients & Input Channels"]
+        MIC["Desktop Microphone (Wake-Word + STT)"]
+        MOBILE["Mobile Companion (WebRTC / Tailscale)"]
+        CLI["CLI Controller"]
     end
 
-    subgraph CoreEngine ["২. Igris Core Engine (apps/core-engine)"]
-        ORCHESTRATOR["সেন্ট্রাল টাস্ক অর্কেস্ট্রেটর"]
-        ROUTER["ডুয়াল-মোড রাউটার (Live vs Ghost)"]
-        VLM_BRAIN["VLM রিজনার (ReAct Loop)"]
-        STATE_MGR["রানটাইম স্টেট ও কনটেক্সট ম্যানেজার"]
+    subgraph CoreEngine ["2. Igris Core Engine (apps/core-engine)"]
+        ORCHESTRATOR["Central Task Orchestrator"]
+        ROUTER["Dual-Mode Router (Live vs. Ghost)"]
+        VLM_BRAIN["VLM Reasoning Core (ReAct Loop)"]
+        STATE_MGR["Runtime State & Context Manager"]
     end
 
-    subgraph PerceptionLayer ["৩. সেন্সরি লেয়ার (The Eyes & Ears)"]
-        MSS_CAP["স্ক্রিনশট ইঞ্জিন (MSS)"]
+    subgraph PerceptionLayer ["3. Perception Layer (Eyes & Ears)"]
+        MSS_CAP["Frame Grabber (MSS)"]
         ATSPI_INSP["AT-SPI UI Accessibility Inspector"]
         AUDIO_SINK["PipeWire / PulseAudio Virtual Loopback"]
     end
 
-    subgraph ActionLayer ["৪. ওএস অ্যাকশন ড্রাইভার (The Hands)"]
-        XVFB_MGR["Xvfb ভার্চুয়াল ডিসপ্লে ম্যানেজার (:99)"]
-        INPUT_SIM["ইনপুট সিমুলেটর (xdotool / ydotool)"]
-        BASH_RUNNER["অ্যাসিঙ্ক ব্যাশ শেল রানার"]
+    subgraph ActionLayer ["4. OS Action Drivers (The Hands)"]
+        XVFB_MGR["Xvfb Virtual Display Manager (:99)"]
+        INPUT_SIM["Input Simulator (xdotool / ydotool)"]
+        BASH_RUNNER["Async Bash Shell Engine"]
     end
 
-    subgraph FeedbackLayer ["৫. ফিডব্যাক ও ওভারলে"]
-        HUD["ডেস্কটপ লেজার ওভারলে (apps/desktop-overlay)"]
-        TTS["ভয়েস সিন্থেসিস (Edge-TTS / Piper)"]
+    subgraph FeedbackLayer ["5. Feedback & Overlays"]
+        HUD["Desktop Laser Overlay (apps/desktop-overlay)"]
+        TTS["Voice Synthesis (Edge-TTS / Piper)"]
     end
 
     MIC --> ORCHESTRATOR
@@ -64,51 +64,50 @@ flowchart TD
 
 ---
 
-## ২. ডুয়াল-মোড এক্সিকিউশন মেকানিক্স (Dual-Mode Execution Mechanics)
+## 2. Dual-Mode Execution Mechanics
 
-### ২.১ লাইভ কো-পাইলট মোড (`DISPLAY=:0`)
-* **টার্গেট:** ফিজিক্যাল ডিসপ্লে যাতে ব্যবহারকারী সরাসরি কাজ দেখতে পারেন।
-* **সেফটি ইন্টারলক (Safety Interlock):**
-  - ব্যাকগ্রাউন্ড থ্রেডে ফিজিক্যাল পয়েন্টার মনিটর করা হয়।
-  - যদি ব্যবহারকারী মাউস নাড়ান ($\Delta d > 10\text{px}$), তবে সঙ্গে সঙ্গে `agent.pause()` কল হবে এবং লক মুক্ত হয়ে যাবে।
-* **ভিজ্যুয়াল ফিডব্যাক:**
-  - `apps/desktop-overlay` একটি স্বচ্ছ ক্লিক-থ্রু ক্যানভাস তৈরি করে, যেখানে এজেন্টের টার্গেট কো-অর্ডিনেটে একটি লেজার রিং বা বাউন্ডিং বক্স ফ্ল্যাশ করে।
+### 2.1 Live Co-Pilot Mode (`DISPLAY=:0`)
+* **Target:** Primary physical display for visual collaboration.
+* **Safety Interlock:**
+  - Background thread monitors physical mouse coordinates.
+  - If the user moves the mouse ($\Delta d > 10\text{px}$), `agent.pause()` triggers immediately and yields input control.
+* **Visual Feedback:**
+  - `apps/desktop-overlay` projects a transient, non-intrusive laser ring or bounding box on the target coordinate before dispatching clicks.
 
-### ২.২ ঘোস্ট মোড (`DISPLAY=:99`)
-* **টার্গেট:** Xvfb ভার্চুয়াল ফ্রেমবাফার।
-* **আইসোলেশন:**
-  - কোনো অডিও/ভিডিও প্লেয়ার বা ইউজার উইন্ডোর সাথে কোনো ইন্টারেকশন হবে না।
-  - অ্যাপ রান হবে এইভাবে: `DISPLAY=:99 <application_command> &`
-  - স্ক্রিন ক্যাপচার ও ইনপুট হবে সম্পূর্ণ আলাদা ডিসপ্লে বাস `:99`-এ।
-
----
-
-## ৩. অটোনোমাস রিজনার লুপ (The ReAct Loop)
-
-```
-[ইনপুট টাস্ক] ───> 1. Observe (স্ক্রিন ফ্রেম + AT-SPI ট্রি)
-                         │
-                         ▼
-                   2. Reason (পরবর্তী অ্যাকশন কী? ক্লিক/টাইপ/স্ক্রল/টার্মিনাল)
-                         │
-                         ▼
-                   3. Act (ভার্চুয়াল বা ফিজিক্যাল ডিসপ্লেতে ইভেন্ট পুশ)
-                         │
-                         ▼
-                   4. Verify (স্ক্রিনশটে প্রত্যাশিত পরিবর্তন এসেছে কি?)
-                         │
-        [অসম্পূর্ণ] ◄────┴────► [সম্পন্ন] ───> সমাপ্তি ও ভয়েস কনফার্মেশন
-```
+### 2.2 Ghost Mode (`DISPLAY=:99`)
+* **Target:** Isolated virtual framebuffer managed by Xvfb.
+* **Isolation Guarantees:**
+  - Isolated from active windows and user interactions on `:0`.
+  - Application commands spawned under `DISPLAY=:99 <cmd> &`.
+  - Input events and frame captures routed exclusively through the `:99` display socket.
 
 ---
 
-## ৪. হাইব্রিড পারসেপশন ও কো-অর্ডিনেট ট্রান্সলেশন
+## 3. Autonomous Reasoning Loop (ReAct Loop)
 
-মডেল থেকে প্রাপ্ত নরম্যালাইজড কো-অর্ডিনেট ($0$ থেকে $1000$ স্কেল) স্ক্রিনের আসল রেজোলিউশনে ট্রান্সলেট করার সূত্র:
+```
+[User Task] ───> 1. Observe (Screen Frame + AT-SPI Tree)
+                       │
+                       ▼
+                 2. Reason (Plan Next Action: Click / Type / Scroll / Bash)
+                       │
+                       ▼
+                 3. Act (Dispatch to Virtual or Primary Display)
+                       │
+                       ▼
+                 4. Verify (Compare Result Frame against Target State)
+                       │
+      [Pending] ◄──────┴──────► [Completed] ───> Voice / Notification Feedback
+```
+
+---
+
+## 4. Coordinate Translation & Target Resolution
+
+Models output normalized coordinates in the $[0, 1000]$ range. Translation to display pixels:
 
 $$X_{actual} = \left\lfloor \frac{X_{norm}}{1000} \times \text{Display Width} \right\rfloor$$
 $$Y_{actual} = \left\lfloor \frac{Y_{norm}}{1000} \times \text{Display Height} \right\rfloor$$
 
-অ্যাক্সেসিবিলিটি ট্রি (AT-SPI) থেকে প্রাপ্ত বাউন্ডিং বক্স:
+When AT-SPI accessibility elements are available within the bounding neighborhood, the component center is resolved deterministically:
 $$\text{Target Center} = \left( x + \frac{w}{2}, y + \frac{h}{2} \right)$$
-যদি AT-SPI উপাদানের বাউন্ডিং বক্স VLM এর কো-অর্ডিনেটের কাছাকাছি পাওয়া যায়, তবে AT-SPI এর সেন্টার পয়েন্টকে ১০০% নির্ভুল টার্গেট হিসেবে গ্রহণ করা হবে।

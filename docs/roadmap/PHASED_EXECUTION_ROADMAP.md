@@ -1,50 +1,50 @@
 # Phased Execution Roadmap
 
-Igris প্রজেক্ট বাস্তবায়নের জন্য একটি সুনির্দিষ্ট ৫-ধাপের প্রকৌশল রোডম্যাপ প্রণয়ন করা হয়েছে:
+Project Igris follows a 5-phase engineering roadmap designed for modularity, safety, and rapid validation:
 
 ---
 
-## ফেজ ০: ওয়ার্কস্পেস ফাউন্ডেশন ও মাল্টি-পিসি মেমোরি প্রোটোকল (বর্তমান ফেজ - সম্পন্ন)
-* [x] Multi-App Monorepo কাঠামো গঠন (`apps/core-engine`, `apps/companion-web`, `apps/desktop-overlay`)।
-* [x] `.agents/memory/` লিভিং মেমোরি সিস্টেম তৈরি (`HANDOVER.md`, `DECISIONS.md`, `ARCHITECTURE.md`)।
-* [x] রুট `AGENTS.md` নির্দেশিকা ও বাংলা ডকুমেন্টেশন ইনভেরিয়েন্ট প্রতিষ্ঠা।
-* [x] `Igris.code-workspace` এবং সিস্টেম প্যাকেজ স্ক্রিপ্ট প্রস্তুত করা।
+## Phase 0: Workspace Foundation & Continuity Protocol (Completed)
+* [x] Multi-App Monorepo architecture established (`apps/core-engine`, `apps/companion-mobile`, `apps/companion-web`, `apps/desktop-overlay`).
+* [x] `.agents/memory/` living memory system operational (`HANDOVER.md`, `DECISIONS.md`, `ARCHITECTURE.md`).
+* [x] Root `AGENTS.md` directive & strict English codebase rule established.
+* [x] Multi-root `Igris.code-workspace` and system dependency scripts configured.
 
 ---
 
-## ফেজ ১: কোর ওএস ড্রাইভার ও ভার্চুয়াল ডিসপ্লে ইঞ্জিন (`apps/core-engine`)
-* [ ] `Xvfb` ভার্চুয়াল ফ্রেমবাফার লঞ্চার ও লাইফসাইকেল ম্যানেজার তৈরি।
-* [ ] মাউস ও কিবোর্ড ইনপুট ড্রাইভার (`xdotool`, `ydotool`, `pyautogui`)।
-* [ ] সেফটি ইন্টারলক ও ইমার্জেন্সি মাউস ওভাররাইড লিসেনার।
-* [ ] ডুয়াল-মোড সুইচিং ও টেস্ট স্ক্রিপ্ট।
+## Phase 1: Core OS Drivers & Virtual Display Engine (`apps/core-engine`)
+* [ ] Implement `Xvfb` virtual framebuffer lifecycle manager.
+* [ ] Implement low-level mouse and keyboard input driver (`xdotool`, `ydotool`, `pyautogui`).
+* [ ] Implement safety interlock listener for immediate mouse override.
+* [ ] Dual-mode execution smoke tests.
 
 ---
 
-## ফেজ ২: স্ক্রিন পারসেপশন ও স্পেশিয়াল ম্যাপিং ইঞ্জিন
-* [ ] হাই-স্পিড ফ্রেম গ্র্যাবার (`mss`) - উভয় ডিসপ্লে (`:0` এবং `:99`) সাপোর্ট সহ।
-* [ ] লিনাক্স `AT-SPI` এক্সেসিবিলিটি ট্রি ট্রাভার্সাল (সরাসরি বাটন ও টেক্সটফিল্ড আইডেন্টিফিকেশন)।
-* [ ] VLM ক্লায়েন্ট ইন্টিগ্রেশন (Gemini 1.5/2.0 Multimodal API)।
-* [ ] স্পেশিয়াল কো-অর্ডিনেট স্কেলিং ও হাইব্রিড বাউন্ডিং বক্স ভেরিফায়ার।
+## Phase 2: Screen Perception & Spatial Mapping Engine
+* [ ] High-speed frame grabber using `mss` supporting displays `:0` and `:99`.
+* [ ] Linux `AT-SPI` accessibility tree traversal for deterministic UI targeting.
+* [ ] Multimodal VLM integration (Gemini Flash/Pro spatial coordinate prediction).
+* [ ] Coordinate scaling and hybrid bounding box resolver.
 
 ---
 
-## ফেজ ৩: অটোনোমাস রিজনার লুপ (The ReAct Computer-Use Loop)
-* [ ] Observe $\rightarrow$ Reason $\rightarrow$ Act $\rightarrow$ Verify ডিসিশন লুপ বাস্তবায়ন।
-* [ ] মাল্টি-স্টেপ টাস্ক এক্সিকিউশন (যেমন: ব্রাউজার ওপেন করা, সার্চ করা, ডেটা পড়া)।
-* [ ] ডিরেক্ট টার্মিনাল/শেল ফাস্ট-পাথ এক্সিকিউশন (কোডিং, ফাইল সিস্টেম, গিট)।
-* [ ] সেফটি গেটওয়ে ও ধ্বংসাত্মক কমান্ড কনফার্মেশন।
+## Phase 3: Autonomous Reasoning Loop (ReAct Computer-Use Engine)
+* [ ] End-to-end Observe $\rightarrow$ Reason $\rightarrow$ Act $\rightarrow$ Verify action loop.
+* [ ] Multi-step desktop automation (browser launching, form filling, document searching).
+* [ ] Headless terminal fast-path engine for filesystem, code editing, and Git commands.
+* [ ] Destructive action confirmation gateways.
 
 ---
 
-## ফেজ ৪: লোকাল ভয়েস পাইপলাইন ও মিটিং অডিও ক্যাচার
-* [ ] ওয়েক-ওয়ার্ড ডিটেকশন ("Hey Igris")।
-* [ ] লো-লেটেন্সি STT (Faster-Whisper / Groq Whisper)।
-* [ ] ন্যাচারাল ভয়েস সিন্থেসিস (Edge-TTS / Piper TTS)।
-* [ ] PipeWire / PulseAudio ভার্চুয়াল লুপব্যাক দিয়ে সিস্টেম ও মিটিং অডিও ক্যাচিং।
+## Phase 4: Local Voice Pipeline & Audio Intelligence
+* [ ] Wake-word detector ("Hey Igris").
+* [ ] Sub-second low-latency STT (Faster-Whisper / Groq Whisper).
+* [ ] Natural TTS synthesis (Edge-TTS / Piper TTS).
+* [ ] PipeWire / PulseAudio virtual audio sink for meeting capture and minutes generation.
 
 ---
 
-## ফেজ ৫: মোবাইল রিমোট কম্প্যানিয়ন ও ভিজ্যুয়াল HUD
-* [ ] Tailscale / Secure WebRTC টানেল কনফিগারেশন।
-* [ ] `apps/companion-web` PWA মোবাইল ক্লায়েন্ট তৈরি।
-* [ ] `apps/desktop-overlay` লাইভ লেজার মার্কার ও ভিজ্যুয়াল ফিডব্যাক সিস্টেম।
+## Phase 5: Mobile Remote Companion & Desktop HUD
+* [ ] Secure tunnel configuration (Tailscale / WireGuard / WebRTC).
+* [ ] `apps/companion-mobile` native mobile client implementation.
+* [ ] `apps/desktop-overlay` transparent HUD and laser target projection.

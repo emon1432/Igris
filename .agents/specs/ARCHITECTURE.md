@@ -1,51 +1,51 @@
 # Igris System Architecture Specification
 
-## ১. প্রজেক্ট পরিচিতি (Project Overview)
-**Igris** হলো একটি লিনাক্স-ফার্স্ট ইউনিভার্সাল অটোনোমাস ওএস অপারেটর (Universal Autonomous OS Operator / Computer Use System)। এটি কোনো নির্দিষ্ট অ্যাপের API-এর ওপর নির্ভরশীল না হয়ে স্ক্রিন ভিশন, অ্যাক্সেসিবিলিটি ট্রি এবং মাউস-কিবোর্ড সিমুলেশনের মাধ্যমে মানুষের মতো যেকোনো কম্পিউটার টাস্ক সম্পাদন করতে সক্ষম।
+## 1. Project Overview
+**Igris** is a Linux-first Universal Autonomous OS Operator (Computer Use System). Instead of depending on fragile, app-specific APIs, Igris uses multimodal Screen Vision, the Linux Accessibility Tree (AT-SPI), and low-level mouse/keyboard simulation to accomplish arbitrary desktop workflows.
 
 ---
 
-## ২. ডুয়াল-মোড এক্সিকিউশন মডেল (Dual-Mode Execution Model)
+## 2. Dual-Mode Execution Model
 
-### ২.১ লাইভ কো-পাইলট মোড (Live Co-Pilot Mode - Astra Style)
-* **টার্গেট ডিসপ্লে:** Primary Display (`DISPLAY=:0` / বর্তমান অ্যাক্টিভ স্ক্রিন)।
-* **উদ্দেশ্য:** ব্যবহারকারীর চোখের সামনে লাইভ কাজ করা (যেমন: Photoshop, GIMP, Figma বা কোড এডিটরে সরাসরি কাজ)।
-* **ফিচার:**
-  - মাউস ও কিবোর্ডের লাইভ ইন্টারঅ্যাকশন ব্যবহারকারী রিয়েল-টাইমে দেখতে পাবেন।
-  - ভিজ্যুয়াল পয়েন্টার / গ্লোয়িং মার্কার দিয়ে বর্তমান ফোকাস দেখানো।
-  - **Manual Override:** ব্যবহারকারী ফিজিক্যাল মাউস নাড়াচাড়া করলেই বা `Escape` কি চাপলে স্বয়ংক্রিয়ভাবে কন্ট্রোল ব্যবহারকারীর কাছে ফেরত যাবে।
+### 2.1 Live Co-Pilot Mode (Foreground / Astra Style)
+* **Target Display:** Primary Display (`DISPLAY=:0` / currently active screen).
+* **Objective:** Direct visual collaboration with the user (e.g., photo editing, code reviews, live UI tasks).
+* **Key Features:**
+  - Real-time mouse and keyboard manipulation visible to the user.
+  - Visual laser overlay / bounding box indicator highlighting target elements.
+  - **Manual Override:** Physical mouse movement ($> 10\text{px}$) or pressing `Escape` immediately releases control to the user.
 
-### ২.২ ঘোস্ট মোড (Ghost / Virtual Lab Mode)
-* **টার্গেট ডিসপ্লে:** Virtual Framebuffer (`DISPLAY=:99` via Xvfb)।
-* **উদ্দেশ্য:** ব্যবহারকারীর বর্তমান কাজে কোনো ব্যাঘাত না ঘটিয়ে সম্পূর্ণ ব্যাকগ্রাউন্ডে কাজ শেষ করা।
-* **ফিচার:**
-  - ব্যবহারকারী মুভি দেখলে, গেম খেললে বা কোডিং করলে তার মূল স্ক্রিনে কোনো উইন্ডো ওপেন হবে না।
-  - ভার্চুয়াল স্ক্রিনের ভেতর সম্পূর্ণ উইন্ডো ও অ্যাপ রান করে টাস্ক কমপ্লিট হবে।
-  - কাজ শেষ হলে কেবল ভয়েস বা নোটিফিকেশনে আপডেট জানানো হবে।
+### 2.2 Ghost Mode (Background / Isolated Virtual Lab)
+* **Target Display:** Virtual Framebuffer (`DISPLAY=:99` via Xvfb).
+* **Objective:** Autonomous task completion without interrupting foreground user activities.
+* **Key Features:**
+  - Full application execution inside an invisible virtual desktop.
+  - Zero mouse displacement or window pop-ups on the primary monitor.
+  - Spoken completion audio or push notification upon task resolution.
 
 ---
 
-## ৩. আর্কিটেকচারাল লেয়ারসমূহ (Architectural Layers)
+## 3. Architectural Layers
 
 ```
 +-------------------------------------------------------------+
-|                 ১. কমান্ড ইন্টারফেস (Interfaces)             |
+|                 1. Command Interfaces                       |
 |   - Local Microphone (Wake-Word + STT)                      |
 |   - Mobile Remote Gateway (WebSockets / WebRTC / Tailscale) |
 +-------------------------------------------------------------+
                               |
                               v
 +-------------------------------------------------------------+
-|                  ২. সেন্ট্রাল ব্রেইন (Brain)                 |
+|                 2. Central Agent Brain                      |
 |   - Multi-Tier LLM & Vision-Language Model (VLM)            |
 |   - Task Planner & Reasoning Engine (ReAct Loop)            |
-|   - Dual-Mode Router (Live vs Ghost Decision)               |
+|   - Dual-Mode Router (Live vs. Ghost Selection)             |
 |   - Long-Term & Episodic Memory                             |
 +-------------------------------------------------------------+
                               |
                               v
 +-------------------------------------------------------------+
-|              ৩. সেন্সরি লেয়ার - চোখ ও কান (Perception)        |
+|              3. Perception Layer (Eyes & Ears)              |
 |   - High-Speed Screen Capture (MSS / Pillow)                |
 |   - Linux AT-SPI Accessibility Tree Inspector               |
 |   - PulseAudio / PipeWire Virtual Audio Loopback            |
@@ -53,16 +53,16 @@
                               |
                               v
 +-------------------------------------------------------------+
-|               ৪. অ্যাকশন লেয়ার - হাত (Action Drivers)        |
+|               4. Action Layer (Execution Hands)             |
 |   - Mouse & Keyboard Simulator (xdotool, ydotool, PyAutoGUI)|
 |   - Virtual Display Manager (Xvfb Manager)                  |
-|   - Headless Terminal / Bash Asynchronous Runner            |
+|   - Headless Terminal / Asynchronous Bash Engine            |
 +-------------------------------------------------------------+
 ```
 
 ---
 
-## ৪. নিরাপত্তা নীতিমালা (Safety Principles)
-1. **কনফার্মেশন চেকবক্স:** পার্সোনাল ফাইল ডিলিট, অ্যাকাউন্ট লগআউট, পাসওয়ার্ড পরিবর্তন বা সরাসরি গিটে পুশের পূর্বে ব্যবহারকারীর সুস্পষ্ট সম্মতি প্রয়োজন।
-2. **আইসোলেশন:** ব্যাকগ্রাউন্ড কাজ সবসময় বিচ্ছিন্ন ভার্চুয়াল ডিসপ্লেতে চালানো হবে।
-3. **লগিং ও অডিট:** এজেন্টের প্রতিটি ক্লিক ও শেল কমান্ডের টাইমস্ট্যাম্প ও স্ক্রিনশট অডিট লগে সংরক্ষিত থাকবে।
+## 4. Safety Guardrails
+1. **Confirmation Gateways:** Explicit confirmation required before deleting files, modifying OS configurations, or pushing directly to Git remotes.
+2. **Display Isolation:** Background tasks remain isolated on virtual framebuffers.
+3. **Audit Trail:** Action history, timestamps, and execution screenshots recorded in `logs/actions.jsonl`.

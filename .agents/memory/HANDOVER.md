@@ -8,29 +8,36 @@
 
 - **Monorepo High-Level Goal:** Build a Linux-first Universal Autonomous OS Operator & Co-Pilot (Project Igris) powered by VLM spatial vision, AT-SPI accessibility, dual-mode execution (Live Co-Pilot on `:0` vs Ghost Virtual Lab on `:99`), and remote mobile companionship.
 - **Active Focus Module:** **Workspace Foundation & Core Action Driver Architecture (`apps/core-engine`)**.
-- **Current Active Task:** **Professional Workspace Restructuring & Multi-PC Living Memory Initialization**:
-  - **Milestone Status:** In progress — Workspace expanded into a multi-app monorepo structure with `.agents/memory/` protocol, multi-module directories (`apps/core-engine`, `apps/companion-web`, `apps/desktop-overlay`), and comprehensive living memory files.
-  - **Workspace Restructuring:**
-    1. Upgraded project from a basic script directory into a scalable multi-app monorepo.
-    2. Moved core Python runtime into `apps/core-engine/` with its own `pyproject.toml` and config.
-    3. Created scaffold for `apps/companion-web/` (Mobile WebRTC PWA) and `apps/desktop-overlay/` (Transparent HUD).
-    4. Established living memory protocol under `.agents/memory/` (`HANDOVER.md`, `DECISIONS.md`, `ARCHITECTURE.md`).
-    5. Established root `AGENTS.md` directive enforcing multi-workstation continuity and universal Bengali documentation with English technical keywords.
+- **Current Active Task:** **Language Policy Realignment & Workspace English Standardization**:
+  - **Milestone Status:** Completed — Enforced strict language separation per user directive: Conversational interactions remain in Bengali, while all repository files, code, docstrings, READMEs, specifications, and living memory records are standardized strictly in English.
+  - **Completed Actions:**
+    1. Updated `GEMINI.md` and `AGENTS.md` with the strict English-only invariant for codebase files.
+    2. Translated and standardized `README.md`, `.agents/memory/*`, `.agents/rules/*`, `.agents/skills/*`, and `docs/*` into English.
+    3. Confirmed workspace integrity across `apps/core-engine`, `apps/companion-mobile`, and `apps/desktop-overlay`.
   - **Immediate Next Steps:**
-    1. Complete living memory documentation (`DECISIONS.md`, `ARCHITECTURE.md`).
-    2. Create `Igris.code-workspace` configuration.
-    3. Finalize `docs/` technical specifications.
-    4. Kick off Phase 1 implementation in `apps/core-engine` (Xvfb virtual display manager and low-level mouse/keyboard driver).
+    1. Initialize Python virtual environment inside `apps/core-engine/`.
+    2. Implement Phase 1: Virtual Display Manager (`apps/core-engine/src/igris/action/virtual_display.py`) wrapping Xvfb lifecycle.
+    3. Implement Mouse/Keyboard low-level driver (`apps/core-engine/src/igris/action/mouse_keyboard.py`) supporting both `:0` and `:99`.
+    4. Write integration test verifying headless GUI invocation and screenshot verification.
   - **Files Modified This Session:**
-    - `AGENTS.md` (Created root directive)
-    - `.agents/memory/HANDOVER.md` (Created)
-    - `.agents/memory/DECISIONS.md` (Pending)
-    - `.agents/memory/ARCHITECTURE.md` (Pending)
-    - `apps/core-engine/` (Relocated source code, pyproject, and config)
-    - `apps/companion-mobile/README.md` (Created dedicated mobile app module scaffold)
-    - `apps/companion-web/README.md` (Created)
-    - `apps/desktop-overlay/README.md` (Created)
-    - `README.md` (Pending update)
+    - `GEMINI.md`
+    - `AGENTS.md`
+    - `README.md`
+    - `apps/companion-mobile/README.md`
+    - `apps/companion-web/README.md`
+    - `apps/desktop-overlay/README.md`
+    - `.agents/rules/safety-protocols.md`
+    - `.agents/rules/dual-mode-policy.md`
+    - `.agents/skills/virtual-display/SKILL.md`
+    - `.agents/skills/screen-perception/SKILL.md`
+    - `.agents/specs/ARCHITECTURE.md`
+    - `.agents/memory/HANDOVER.md`
+    - `.agents/memory/DECISIONS.md`
+    - `.agents/memory/ARCHITECTURE.md`
+    - `docs/architecture/DUAL_MODE_ENGINE.md`
+    - `docs/roadmap/PHASED_EXECUTION_ROADMAP.md`
+    - `docs/specs/SAFETY_AND_ISOLATION_SPEC.md`
+    - `docs/research/LINUX_DESKTOP_AUTOMATION.md`
 
 ---
 
@@ -38,8 +45,8 @@
 
 | Phase | Focus Area | Status | Target |
 | :--- | :--- | :--- | :--- |
-| **Phase 0** | Workspace Architecture, Multi-PC Memory, & Guardrails | **Active** | 100% complete workspace foundation |
-| **Phase 1** | OS Action Drivers, Virtual Display (Xvfb), & Input Simulator | Upcoming | Robust headless & live input control |
+| **Phase 0** | Workspace Architecture, Multi-PC Memory, & Guardrails | **Completed** | 100% complete workspace foundation |
+| **Phase 1** | OS Action Drivers, Virtual Display (Xvfb), & Input Simulator | **Up Next** | Robust headless & live input control |
 | **Phase 2** | Screen Perception Engine (MSS + AT-SPI + VLM Spatial Mapping) | Upcoming | High-speed frame capture & element localization |
 | **Phase 3** | Autonomous Reasoning Loop (ReAct: Observe $\rightarrow$ Act $\rightarrow$ Verify) | Upcoming | End-to-end task execution (WhatsApp, browser, files) |
 | **Phase 4** | Local Voice Pipeline & Audio Loopback (Wake-word, STT, TTS, Meet) | Upcoming | Voice-driven interaction & meeting minutes |

@@ -1,23 +1,24 @@
 # Safety & Display Isolation Specification
 
-## ১. উদ্দেশ্য
-কম্পিউটার অপারেটিং এজেন্টের ক্ষেত্রে নিরাপত্তা ও প্রক্রিয়া বিচ্ছিন্নতা (Isolation) নিশ্চিত করা অপরিহার্য। Igris-এর ডিজাইন এমনভাবে করা হয়েছে যাতে ভুলবশত ব্যবহারকারীর ব্যক্তিগত তথ্য ক্ষতিগ্রস্থ না হয় বা সিস্টেমে বিপর্যয় না ঘটে।
+## 1. Scope & Objectives
+For an autonomous computer-operating agent, safety and display isolation are foundational. Igris must guarantee that background tasks do not corrupt user data, disrupt active sessions, or execute unintended operations.
 
 ---
 
-## ২. ভার্চুয়াল ডিসপ্লে আইসোলেশন প্রোটোকল
-1. **প্রক্রিয়া বিচ্ছিন্নতা:** ব্যাকগ্রাউন্ড ঘোস্ট মোডের সমস্ত গ্রাফিক্যাল প্রসেস শুধুমাত্র ভার্চুয়াল ডিসপ্লে বাসে চলবে।
-2. **ক্লিপবোর্ড গার্ড:** প্রধান ডিসপ্লে এবং ভার্চুয়াল ডিসপ্লের ক্লিপবোর্ড ডেটা আলাদা থাকবে, যেন ব্যবহারকারীর কপি করা পাসওয়ার্ড ব্যাকগ্রাউন্ড অ্যাপে চলে না যায়।
-3. **রিসোর্স কোটা:** ভার্চুয়াল অ্যাপ্লিকেশনের সিপিইউ ও মেমরি ব্যবহার নিয়ন্ত্রণে রাখা যাতে মূল ওএস স্লো না হয়।
+## 2. Virtual Display Isolation Protocols
+1. **Process Sandboxing:** Background tasks run exclusively against the isolated Xvfb display socket.
+2. **Clipboard Isolation:** The primary display and virtual display clipboards remain isolated by default to prevent leakage of credentials or sensitive user data.
+3. **Resource Throttling:** Background applications are managed under process quotas to ensure zero performance degradation for foreground games or media playback.
 
 ---
 
-## ৩. অ্যাকশন পারমিশন ও কনফার্মেশন গেটওয়ে
+## 3. Action Permission & Confirmation Matrix
 
-| অপারেশন টাইপ | পারমিশন লেভেল | পদ্ধতি |
+| Operation Category | Autonomy Level | Enforcement Mechanism |
 | :--- | :--- | :--- |
-| অ্যাপ লঞ্চ / ব্রাউজিং | স্বয়ংক্রিয় (Autonomous) | কোনো অনুমতি প্রয়োজন নেই |
-| ফাইল পড়া ও সার্চ | স্বয়ংক্রিয় (Autonomous) | কোনো অনুমতি প্রয়োজন নেই |
-| কোড এডিট / ফিক্স | সেমি-অটোনোমাস (Reviewable) | এডিট শেষে ব্যবহারকারীকে অবহিত করা |
-| গিট পুশ / ডেপ্লয় | কনফার্মেশন প্রয়োজন (Gated) | ব্যবহারকারীর স্পষ্ট সম্মতি প্রয়োজন |
-| ফাইল ডিলিট / ফরম্যাট | কঠোর কনফার্মেশন (Strict Gated) | মৌখিক বা টেক্সট হ্যাঁ/না কনফার্মেশন ব্যতিরেকে নিষিদ্ধ |
+| Application Launching / Web Navigation | Autonomous | Allowed without prompts |
+| File Inspection & Reading | Autonomous | Allowed without prompts |
+| Code Modification / Local Editing | Semi-Autonomous | Allowed; user notified upon completion |
+| Git Push / Deployment | Gated | Explicit verbal/text confirmation required |
+| File Deletion (`rm`, trash purge) | Strict Gated | Hard prompt requiring positive confirmation |
+| System Configuration (`sudo`, package removal) | Blocked | Prohibited unless explicitly issued by user |
