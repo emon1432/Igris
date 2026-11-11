@@ -39,7 +39,7 @@ async def test_meeting_transcriber_lifecycle():
     assert "refactor the perception engine" in full_text
 
     # Generate summary without Gemini API (deterministic fallback)
-    summary = await mt.generate_summary(title="Sprint Planning Meeting")
+    summary = await mt.generate_summary(title="Sprint Planning Meeting", gemini_api_key="")
     assert summary.title == "Sprint Planning Meeting"
     assert len(summary.key_discussion_points) >= 1
     assert "refactor the perception engine" in summary.key_discussion_points[0]

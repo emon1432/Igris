@@ -83,6 +83,7 @@ class TaskOrchestrator:
         task_goal: str,
         mode: ExecutionMode = ExecutionMode.GHOST,
         target_display: Optional[str] = None,
+        step_callback: Optional[object] = None,
     ) -> TaskExecutionSummary:
         """Run the end-to-end autonomous ReAct loop until completion, error, or override."""
         self.state.reset()
@@ -158,11 +159,18 @@ class TaskOrchestrator:
                     self.state.status = AgentStatus.FINISHED
                     success = True
                     final_message = action.reasoning or "Task successfully achieved."
-                    self.state.record_step(
+                    finished_record = self.state.record_step(
                         action_type="finished",
                         reasoning=action.reasoning,
                         details="Goal completed.",
                     )
+                    if step_callback:
+                        try:
+                            cb_res = step_callback(finished_record, self.state.status)
+                            if asyncio.iscoroutine(cb_res):
+                                await cb_res
+                        except Exception:
+                            pass
                     logger.info("Goal completed at step %d: %s", iteration, final_message)
                     break
 
@@ -188,12 +196,19 @@ class TaskOrchestrator:
                     if self.safety and mode == ExecutionMode.LIVE:
                         self.safety.notify_agent_move(target_coord[0], target_coord[1])
 
-                self.state.record_step(
+                step_record = self.state.record_step(
                     action_type=action.action_type,
                     reasoning=action.reasoning,
                     coordinate=target_coord,
                     details=dispatch_res.details,
                 )
+                if step_callback:
+                    try:
+                        cb_res = step_callback(step_record, self.state.status)
+                        if asyncio.iscoroutine(cb_res):
+                            await cb_res
+                    except Exception:
+                        pass
 
                 # ---------------------------------------------------------
                 # 4. VERIFY: Pause briefly for UI updates

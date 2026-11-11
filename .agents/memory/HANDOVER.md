@@ -7,16 +7,22 @@
 ## 1. Current Objective / Active Sprint
 
 - **Monorepo High-Level Goal:** Build a Linux-first Universal Autonomous OS Operator & Co-Pilot (Project Igris) powered by VLM spatial vision, AT-SPI accessibility, dual-mode execution (Live Co-Pilot on `:0` vs Ghost Virtual Lab on `:99`), and remote mobile companionship.
-- **Active Focus Module:** **Remote Mobile Companion Gateway & Desktop HUD Overlay (`apps/core-engine/src/igris/remote`, `apps/companion-web/`, `apps/core-engine/src/igris/action/hud_overlay.py`)**.
-- **Current Active Task:** **Phase 5: Remote Mobile Companion Gateway & Desktop HUD Overlay COMPLETED & VERIFIED**:
-  - **Milestone Status:** 100% Completed & Verified with 52 automated test suites passing across monorepo.
-  - **SonarQube Quality Gate Resolution (12 Issues Resolved):**
-    1. **`gateway.py` (L161, L247):** Prevented premature garbage collection by storing `asyncio.create_task` references in `manager.track_task(...)`.
-    2. **`capture.py` (L153, L210):** Replaced synchronous `subprocess.Popen` in async method with `asyncio.create_subprocess_exec`, and ensured `asyncio.CancelledError` is re-raised rather than swallowed.
-    3. **`pipeline.py` (L139):** Re-raised `asyncio.CancelledError` in background loop and cleanly cancelled task without suppressing error.
-    4. **`tts.py` (L65, L71, L75, L81):** Replaced synchronous subprocess calls with non-blocking `asyncio.create_subprocess_exec` and `await proc.communicate()`.
-    5. **`index.html` (L65, L71):** Associated accessible `<label>` elements with `.visually-hidden` and `aria-label` attributes on form inputs (WCAG 2.0 compliance).
-    6. **`hud_overlay.py` (L47):** Refactored `flash_laser` so that disabled states return `None` while active states return the indicator, avoiding invariant method return warnings.
+- **Active Focus Module:** **Autonomous VLM Resilience & Live Operational Deployment (`apps/core-engine/src/igris/brain/vlm_client.py`, `.env`)**.
+- **Current Active Task:** **Live Visible On-Screen Autonomous Browser Automation COMPLETED & VERIFIED**:
+  - **Milestone Status:** 100% Completed & Demonstrated live on user's primary display (`DISPLAY=:0`) with visible on-screen browser and laser cursor interaction.
+  - **Visible Live Automation Demonstration Execution:**
+    - Ran live visible browser automation: `visible_browser_demo.py` on primary display (`:0`).
+    - **Step 1:** Successfully spawned visible maximized Google Chrome browser on user's desktop.
+    - **Step 2:** Navigated to YouTube directly.
+    - **Step 3:** Injected and projected glowing neon laser cursor (`#FF0055`) with cyan ripple pulse.
+    - **Step 4:** Glided cursor visibly across screen to YouTube search bar `(669, 28)`.
+    - **Step 5:** Clicked search bar with visual ripple, then typed `"Plabon World"` character-by-character with realistic typing delay.
+    - **Step 6:** Moved cursor to the search button `(962, 28)`, triggered click animation, and submitted search.
+    - **Step 7:** Loaded YouTube video results, scrolled down through videos, and kept window open for visual verification before clean exit.
+  - **Runtime Stability & Model Cascade Enhancements:**
+    1. **Gemini API Error Resolutions:** Configured `gemini-3.1-flash-lite` as the high-throughput, zero-quota-error primary model with automated fallback cascade across `["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"]`.
+    2. **Real-time Step Streaming:** Added `step_callback` to `TaskOrchestrator.execute_task()` and bridged it to `gateway.py` WebSocket broadcast so the web client displays live thoughts and actions in real time.
+    3. **Automated Test Suite Expansion:** 53/53 tests passing cleanly in `pytest`.
   - **Completed Components:**
     1. **Remote Protocol Schemas (`protocol.py`):** Bidirectional RPC message contracts (`AuthRequest`, `TaskCommand`, `TaskUpdateMessage`, `TaskCompletedMessage`, `ScreenFrameMessage`, `EmergencyStopMessage`, `SystemStatusMessage`) with standard envelope serialization.
     2. **FastAPI & WebSocket Gateway Hub (`gateway.py`):** High-performance async gateway managing multi-client WebSockets (`/ws/companion`), live JPEG screen previews (`/api/screen/preview`), instant emergency abort (`/api/emergency/stop`), and background task execution bridging.

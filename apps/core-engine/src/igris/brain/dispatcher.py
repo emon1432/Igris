@@ -106,7 +106,7 @@ class ActionDispatcher:
                 self.input_driver.right_click(x=target_x, y=target_y, display=display)
                 details = f"Right-clicked at ({target_x}, {target_y})"
 
-            elif action_type in ["type", "input"]:
+            elif action_type in ["type", "input", "type_and_enter"]:
                 # Click target first to focus if coordinate specified, then type text
                 if action.normalized_x > 0 or action.normalized_y > 0:
                     self.input_driver.click(x=target_x, y=target_y, button="1", display=display)
@@ -114,7 +114,22 @@ class ActionDispatcher:
 
                 text_to_type = action.text_input or ""
                 self.input_driver.type_text(text_to_type, display=display)
+                if action_type == "type_and_enter" or text_to_type.endswith("\n"):
+                    self.input_driver.press_key("Return", display=display)
                 details = f"Typed text '{text_to_type}' into ({target_x}, {target_y})"
+
+            elif action_type in ["press_key", "key"]:
+                key_name = action.text_input or "Return"
+                if key_name.lower() in ["enter", "return"]:
+                    key_name = "Return"
+                self.input_driver.press_key(key_name, display=display)
+                details = f"Pressed key '{key_name}'"
+
+            elif action_type in ["hotkey"]:
+                keys = [k.strip() for k in (action.text_input or "").split("+") if k.strip()]
+                if keys:
+                    self.input_driver.hotkey(*keys, display=display)
+                details = f"Triggered hotkey '{action.text_input}'"
 
             elif action_type in ["scroll_down", "scroll"]:
                 self.input_driver.move(target_x, target_y, display=display)

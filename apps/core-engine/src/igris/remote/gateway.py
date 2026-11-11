@@ -148,9 +148,23 @@ def create_gateway_app(
 
         # Launch background task execution
         async def run_bg():
+            async def on_step(step_rec, status):
+                step_env = CompanionEnvelope(
+                    type=MessageType.TASK_UPDATE,
+                    payload=TaskUpdateMessage(
+                        step_number=step_rec.step_number,
+                        action_type=step_rec.action_type,
+                        thought=step_rec.reasoning,
+                        coordinate=step_rec.target_coordinate,
+                        status=status.value,
+                    ).model_dump(),
+                )
+                await manager.broadcast(step_env)
+
             summary = await orch.execute_task(
                 task_goal=cmd.task_goal,
                 mode=mode,
+                step_callback=on_step,
             )
             # Broadcast completion
             comp_msg = CompanionEnvelope(
@@ -235,9 +249,23 @@ def create_gateway_app(
 
                         # Run task
                         async def run_ws_task():
+                            async def on_ws_step(step_rec, status):
+                                step_env = CompanionEnvelope(
+                                    type=MessageType.TASK_UPDATE,
+                                    payload=TaskUpdateMessage(
+                                        step_number=step_rec.step_number,
+                                        action_type=step_rec.action_type,
+                                        thought=step_rec.reasoning,
+                                        coordinate=step_rec.target_coordinate,
+                                        status=status.value,
+                                    ).model_dump(),
+                                )
+                                await manager.broadcast(step_env)
+
                             summary = await orch.execute_task(
                                 task_goal=cmd.task_goal,
                                 mode=mode,
+                                step_callback=on_ws_step,
                             )
                             complete_env = CompanionEnvelope(
                                 type=MessageType.TASK_COMPLETED,

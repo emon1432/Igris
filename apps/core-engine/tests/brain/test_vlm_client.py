@@ -51,3 +51,46 @@ def test_vlm_client_fallback_on_invalid_json():
     assert action.normalized_x == 500
     assert "fallback" in action.reasoning.lower()
 
+
+def test_vlm_client_cascade_fallback_on_api_error(monkeypatch):
+    """Verify that when primary model fails, VLMClient falls back to next model."""
+    from unittest.mock import MagicMock
+    from PIL import Image
+    from igris.perception.screen import ScreenFrame
+
+    client = VLMClient(
+        api_key="mock_key",
+        model_name="failing-model",
+        fallback_models=["working-model"],
+    )
+
+    calls = []
+
+    def mock_generate_content(model, contents, config):
+        calls.append(model)
+        if model == "failing-model":
+            raise RuntimeError("503 Service Unavailable")
+        mock_resp = MagicMock()
+        mock_resp.text = '{"action_type": "click", "normalized_x": 100, "normalized_y": 200, "reasoning": "Fallback ok"}'
+        return mock_resp
+
+    mock_genai_client = MagicMock()
+    mock_genai_client.models.generate_content = mock_generate_content
+    monkeypatch.setattr(client, "_get_client", lambda: mock_genai_client)
+
+    img = Image.new("RGB", (100, 100), color="blue")
+    frame = ScreenFrame(
+        width=100,
+        height=100,
+        display=":0",
+        duration_ms=5.0,
+        raw_image=img,
+    )
+    action = client.predict_action(frame, "test goal")
+
+    assert calls == ["failing-model", "working-model"]
+    assert action.action_type == "click"
+    assert action.normalized_x == 100
+    assert action.reasoning == "Fallback ok"
+
+

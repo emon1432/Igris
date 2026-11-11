@@ -124,7 +124,7 @@ class MeetingTranscriber:
                 decisions=[],
             )
 
-        api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
+        api_key = gemini_api_key if gemini_api_key is not None else os.getenv("GEMINI_API_KEY")
         if api_key:
             try:
                 from google import genai
@@ -143,8 +143,9 @@ class MeetingTranscriber:
                     f"}}"
                 )
 
+                meeting_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model=meeting_model,
                     contents=[types.Part.from_text(text=prompt)],
                     config=types.GenerateContentConfig(
                         temperature=0.2,

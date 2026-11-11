@@ -37,8 +37,12 @@ ACTION TYPES:
 - 'double_click': Double-click at (normalized_x, normalized_y).
 - 'right_click': Right-click at (normalized_x, normalized_y).
 - 'type': Type text specified in 'text_input' into focused field.
+- 'type_and_enter': Type text specified in 'text_input' and press Enter/Return.
+- 'press_key': Press key specified in 'text_input' (e.g. 'Return', 'Escape', 'Tab', 'BackSpace').
+- 'hotkey': Trigger shortcut specified in 'text_input' (e.g. 'ctrl+t', 'ctrl+w', 'ctrl+l').
 - 'scroll_down': Scroll down at coordinate.
 - 'scroll_up': Scroll up at coordinate.
+- 'terminal': Execute non-destructive shell command in 'text_input' (e.g. 'google-chrome "https://youtube.com" &' or 'firefox &') to launch applications.
 - 'wait': Wait for page/app to load.
 - 'finished': The user's goal has been completely achieved.
 
@@ -55,16 +59,30 @@ Return pure, valid JSON matching the following schema:
 """
 
 
+DEFAULT_MODELS_CASCADE = [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.8-flash",
+]
+
+
 class VLMClient:
     """Interfaces with multimodal Vision-Language Models for desktop spatial reasoning."""
 
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model_name: str = "gemini-2.0-flash",
+        model_name: Optional[str] = None,
+        fallback_models: Optional[List[str]] = None,
     ):
+        if not api_key and "GEMINI_API_KEY" not in os.environ:
+            from igris.core.config import AppConfig
+            AppConfig.load()
+
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model_name = model_name
+        self.model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+        self.fallback_models = fallback_models or list(DEFAULT_MODELS_CASCADE)
         self._client = None
 
     def _get_client(self):
@@ -101,22 +119,46 @@ Observe the current screen state and output the single next optimal action in JS
 
         from google.genai import types
 
-        logger.debug("Dispatching frame to VLM model: %s", self.model_name)
-        response = client.models.generate_content(
-            model=self.model_name,
-            contents=[
-                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
-                types.Part.from_text(text=prompt),
-            ],
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.1,
-                response_mime_type="application/json",
-            ),
-        )
+        # Determine cascade of models to try
+        candidate_models = [self.model_name]
+        for m in self.fallback_models:
+            if m not in candidate_models:
+                candidate_models.append(m)
 
-        response_text = response.text or "{}"
-        return self._parse_response(response_text)
+        last_error = None
+        for idx, current_model in enumerate(candidate_models):
+            try:
+                logger.debug("Dispatching frame to VLM model: %s", current_model)
+                response = client.models.generate_content(
+                    model=current_model,
+                    contents=[
+                        types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+                        types.Part.from_text(text=prompt),
+                    ],
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT,
+                        temperature=0.1,
+                        response_mime_type="application/json",
+                    ),
+                )
+                response_text = response.text or "{}"
+                return self._parse_response(response_text)
+            except Exception as e:
+                last_error = e
+                next_model = candidate_models[idx + 1] if idx + 1 < len(candidate_models) else None
+                if next_model:
+                    logger.warning(
+                        "VLM model '%s' encountered error: %s. Falling back to next model '%s'...",
+                        current_model,
+                        e,
+                        next_model,
+                    )
+                else:
+                    logger.error("All VLM models in cascade exhausted. Final error: %s", e)
+
+        if last_error:
+            raise last_error
+        raise RuntimeError("No VLM model succeeded in generating an action.")
 
     def _parse_response(self, text: str) -> VisualAction:
         """Parse model JSON response into VisualAction model."""
