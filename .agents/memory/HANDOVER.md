@@ -7,36 +7,33 @@
 ## 1. Current Objective / Active Sprint
 
 - **Monorepo High-Level Goal:** Build a Linux-first Universal Autonomous OS Operator & Co-Pilot (Project Igris) powered by VLM spatial vision, AT-SPI accessibility, dual-mode execution (Live Co-Pilot on `:0` vs Ghost Virtual Lab on `:99`), and remote mobile companionship.
-- **Active Focus Module:** **Local Voice Pipeline & Audio Intelligence (`apps/core-engine/src/igris/voice`)**.
-- **Current Active Task:** **Phase 4: Local Voice Pipeline & Audio Intelligence COMPLETED & VERIFIED**:
-  - **Milestone Status:** 100% Completed & Verified with 41 automated test suites passing (all 14 voice tests passed).
+- **Active Focus Module:** **Remote Mobile Companion Gateway & Desktop HUD Overlay (`apps/core-engine/src/igris/remote`, `apps/companion-web/`, `apps/core-engine/src/igris/action/hud_overlay.py`)**.
+- **Current Active Task:** **Phase 5: Remote Mobile Companion Gateway & Desktop HUD Overlay COMPLETED & VERIFIED**:
+  - **Milestone Status:** 100% Completed & Verified with 52 automated test suites passing across monorepo.
   - **Completed Components:**
-    1. **Audio Capture Layer (`capture.py`):** Real-time PCM microphone streamer via `sounddevice` / ALSA and PipeWire virtual loopback sink (`pw-record`) capturing desktop application audio (e.g. Google Meet, Zoom, YouTube) in 16kHz mono.
-    2. **Wake-Word & VAD (`wake_word.py`):** Energy-based Voice Activity Detector (RMS thresholding and silence timeout) and phrase activator ("Hey Igris", "Igris") with casing preservation.
-    3. **Speech-to-Text (`stt.py`):** Local `Faster-Whisper` engine running on CTranslate2 (`int8` quantization), providing sub-second transcription with word timestamps and confidence metrics without cloud dependencies.
-    4. **Text-to-Speech (`tts.py`):** Natural speech synthesis using `Edge-TTS` with fully in-memory streaming directly to audio playback pipelines (zero `/tmp` file writes, 100% SonarQube compliant).
-    5. **Meeting Intelligence Transcriber (`meeting_transcriber.py`):** Continuous audio buffer from PipeWire loopback sink producing rolling timestamped dialog lines and generating structured meeting summaries (executive summary, key discussion points, action items, and decisions).
-    6. **Voice Co-Pilot Pipeline (`pipeline.py`):** Async state machine orchestrating hands-free execution: Wake-word detection -> Voice Command STT -> ReAct Loop Execution (`TaskOrchestrator`) -> Vocal status confirmation via TTS.
-    7. **CLI Integration (`cli.py`):** Connected `--voice` flag for continuous hands-free co-pilot mode and `--record-meeting` flag for automated meeting note generation.
-    8. **Automated Test Suite:** 41/41 unit and integration tests passing across actions, perception, brain, and voice packages.
-  - **Immediate Next Steps (Phase 5):**
-    1. Draft Implementation Plan for Phase 5: Remote Mobile Companion Gateway (WebRTC / Tailscale) & Desktop Overlay HUD (Transparent Canvas laser pointer).
-    2. User to review and commit Phase 4 implementation.
+    1. **Remote Protocol Schemas (`protocol.py`):** Bidirectional RPC message contracts (`AuthRequest`, `TaskCommand`, `TaskUpdateMessage`, `TaskCompletedMessage`, `ScreenFrameMessage`, `EmergencyStopMessage`, `SystemStatusMessage`) with standard envelope serialization.
+    2. **FastAPI & WebSocket Gateway Hub (`gateway.py`):** High-performance async gateway managing multi-client WebSockets (`/ws/companion`), live JPEG screen previews (`/api/screen/preview`), instant emergency abort (`/api/emergency/stop`), and background task execution bridging.
+    3. **Desktop HUD Laser Overlay (`hud_overlay.py`):** Visual laser pointer indicator for Live Co-Pilot mode (`DISPLAY=:0`), projecting transient target crosshairs before clicks and keystrokes are executed.
+    4. **Action Dispatcher Integration (`dispatcher.py`):** Automatically flashes the HUD laser overlay when dispatching actions on `:0` in Live mode.
+    5. **Mobile Companion PWA Web Client (`apps/companion-web/`):** Full-featured responsive progressive web application (`index.html`, `css/style.css`, `js/app.js`) supporting Push-to-Talk voice recording, real-time screen canvas stream, live agent thoughts stream, mode switching, and one-tap emergency stop.
+    6. **CLI Integration (`cli.py`):** Added `--gateway`, `--host`, and `--port` CLI options for launching the remote companion server.
+    7. **Automated Test Suite:** 52/52 unit and integration tests passing across all packages (actions, perception, brain, voice, remote).
+  - **Immediate Next Steps:**
+    1. User review and git commit/push for Phase 5.
+    2. Monorepo end-to-end integration and demonstration.
   - **Files Modified This Session:**
-    - `apps/core-engine/src/igris/voice/capture.py` (Created)
-    - `apps/core-engine/src/igris/voice/wake_word.py` (Created)
-    - `apps/core-engine/src/igris/voice/stt.py` (Created)
-    - `apps/core-engine/src/igris/voice/tts.py` (Created)
-    - `apps/core-engine/src/igris/voice/meeting_transcriber.py` (Created)
-    - `apps/core-engine/src/igris/voice/pipeline.py` (Created)
-    - `apps/core-engine/src/igris/voice/__init__.py` (Updated exports)
-    - `apps/core-engine/src/igris/cli.py` (Added `--voice` and `--record-meeting` support)
-    - `apps/core-engine/tests/voice/test_capture.py` (Created)
-    - `apps/core-engine/tests/voice/test_wake_word.py` (Created)
-    - `apps/core-engine/tests/voice/test_stt.py` (Created)
-    - `apps/core-engine/tests/voice/test_tts.py` (Created)
-    - `apps/core-engine/tests/voice/test_meeting_transcriber.py` (Created)
-    - `apps/core-engine/tests/voice/test_voice_pipeline.py` (Created)
+    - `apps/core-engine/src/igris/remote/protocol.py` (Created)
+    - `apps/core-engine/src/igris/remote/gateway.py` (Created)
+    - `apps/core-engine/src/igris/action/hud_overlay.py` (Created)
+    - `apps/companion-web/index.html` (Created)
+    - `apps/companion-web/css/style.css` (Created)
+    - `apps/companion-web/js/app.js` (Created)
+    - `apps/core-engine/src/igris/brain/dispatcher.py` (Integrated HUD overlay)
+    - `apps/core-engine/src/igris/remote/__init__.py` (Updated exports)
+    - `apps/core-engine/src/igris/cli.py` (Added `--gateway` support)
+    - `apps/core-engine/tests/remote/test_protocol.py` (Created)
+    - `apps/core-engine/tests/remote/test_gateway.py` (Created)
+    - `apps/core-engine/tests/action/test_hud_overlay.py` (Created)
     - `.agents/memory/HANDOVER.md` (Updated)
 
 ---
@@ -50,7 +47,7 @@
 | **Phase 2** | Screen Perception Engine (MSS + AT-SPI + VLM Spatial Mapping) | **Completed** | 22/22 automated tests passed (MSS + AT-SPI + VLM) |
 | **Phase 3** | Autonomous Reasoning Loop (ReAct: Observe $\rightarrow$ Act $\rightarrow$ Verify) | **Completed** | 27/27 automated tests passed (Full ReAct loop) |
 | **Phase 4** | Local Voice Pipeline & Audio Loopback (Wake-word, STT, TTS, Meet) | **Completed** | 41/41 automated tests passed (Voice + Meeting) |
-| **Phase 5** | Remote Mobile Companion Gateway (WebRTC / Tailscale) & Desktop HUD | **Up Next** | Anywhere mobile control & live laser overlay |
+| **Phase 5** | Remote Mobile Companion Gateway (WebRTC / Tailscale) & Desktop HUD | **Completed** | 52/52 automated tests passed (Gateway + HUD) |
 
 ---
 

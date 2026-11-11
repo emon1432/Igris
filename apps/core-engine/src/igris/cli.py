@@ -28,6 +28,9 @@ async def async_main():
     parser.add_argument("--mode", choices=["live", "ghost"], default="ghost", help="Execution mode (default: ghost)")
     parser.add_argument("--task", type=str, help="Single autonomous task instruction to execute")
     parser.add_argument("--voice", action="store_true", help="Start hands-free Voice Co-Pilot mode")
+    parser.add_argument("--gateway", action="store_true", help="Start FastAPI & WebSocket Remote Companion Gateway")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Gateway host binding (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=8000, help="Gateway port (default: 8000)")
     parser.add_argument("--record-meeting", action="store_true", help="Capture and transcribe meeting audio via PipeWire")
     parser.add_argument("--meeting-duration", type=float, default=30.0, help="Meeting recording duration in seconds")
     parser.add_argument("--config", type=str, default="config/default_config.yaml", help="Path to config file")
@@ -68,6 +71,16 @@ async def async_main():
         except (KeyboardInterrupt, asyncio.CancelledError):
             print("\n• Stopping Voice Co-Pilot Pipeline...")
             await pipeline.stop()
+
+    elif args.gateway:
+        import uvicorn
+        from igris.remote.gateway import create_gateway_app
+
+        print(f"• Starting Remote Companion Gateway on http://{args.host}:{args.port}")
+        app = create_gateway_app()
+        server_cfg = uvicorn.Config(app, host=args.host, port=args.port, log_level="info")
+        server = uvicorn.Server(server_cfg)
+        await server.serve()
 
     elif args.record_meeting:
         print(f"• Starting PipeWire Meeting Audio Capture ({args.meeting_duration}s)...")

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Igris • Mobile Companion</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top App Bar -->
+        <header class="app-header">
+            <div class="brand">
+                <span class="brand-icon">⚡</span>
+                <span class="brand-name">IGRIS</span>
+                <span class="badge" id="mode-badge">GHOST</span>
+            </div>
+            <div class="connection-status">
+                <span class="status-dot disconnected" id="status-dot"></span>
+                <span class="status-text" id="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Live View Canvas -->
+        <main class="main-content">
+            <section class="screen-preview-container">
+                <div class="screen-header">
+                    <h3>Host Screen Stream</h3>
+                    <button class="icon-btn" id="refresh-screen-btn" title="Refresh Screen">🔄</button>
+                </div>
+                <div class="screen-wrapper">
+                    <img id="live-screen" src="" alt="Awaiting host screen preview..." class="screen-image">
+                    <div id="screen-placeholder" class="screen-placeholder">
+                        <div class="spinner"></div>
+                        <p>Connecting to host display...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Agent Reasoning & Activity Log -->
+            <section class="activity-section">
+                <div class="section-header">
+                    <h3>Agent Activity & Thoughts</h3>
+                    <span id="step-counter" class="step-pill">Idle</span>
+                </div>
+                <div class="log-stream" id="log-stream">
+                    <div class="log-entry info">
+                        <span class="time">00:00</span>
+                        <span class="msg">Companion client initialized. Ready for commands.</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Controller Bar -->
+        <footer class="controls-footer">
+            <!-- Panic Button -->
+            <button class="emergency-stop-btn" id="emergency-btn">
+                <span class="stop-icon">🛑</span> EMERGENCY STOP
+            </button>
+
+            <!-- Input Controls -->
+            <div class="command-bar">
+                <select id="mode-select" class="mode-select">
+                    <option value="ghost" selected>Ghost Mode (:99)</option>
+                    <option value="live">Live Co-Pilot (:0)</option>
+                </select>
+
+                <div class="input-wrapper">
+                    <input type="text" id="command-input" placeholder="Give Igris a task instruction..." autocomplete="off">
+                    <button id="send-btn" class="send-btn">➔</button>
+                </div>
+
+                <!-- Push to Talk Mic -->
+                <button class="ptt-btn" id="ptt-btn" title="Push to Talk">
+                    🎙️
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
+

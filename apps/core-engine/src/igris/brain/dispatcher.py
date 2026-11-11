@@ -4,6 +4,7 @@ import asyncio
 import logging
 from typing import List, Optional
 from pydantic import BaseModel
+from igris.action.hud_overlay import DesktopHUDOverlay
 from igris.action.mouse_keyboard import InputDriver
 from igris.action.terminal import AsyncTerminalRunner
 from igris.brain.vlm_client import VisualAction
@@ -30,10 +31,12 @@ class ActionDispatcher:
         input_driver: InputDriver,
         coordinate_resolver: CoordinateResolver,
         terminal_runner: Optional[AsyncTerminalRunner] = None,
+        hud_overlay: Optional[DesktopHUDOverlay] = None,
     ):
         self.input_driver = input_driver
         self.resolver = coordinate_resolver
         self.terminal = terminal_runner or AsyncTerminalRunner()
+        self.hud_overlay = hud_overlay
 
     async def dispatch(
         self,
@@ -83,6 +86,10 @@ class ActionDispatcher:
 
         target_x = resolved.target_x
         target_y = resolved.target_y
+
+        # Flash HUD overlay laser indicator if in Live mode (:0)
+        if self.hud_overlay and display == ":0":
+            await self.hud_overlay.async_flash_laser(target_x, target_y, duration_seconds=0.1)
 
         try:
             if action_type in ["click", "left_click"]:
