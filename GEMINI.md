@@ -1,4 +1,6 @@
 # Language and Documentation Guidelines
 
 - **Primary Communication Language (Chat/Conversation):** All conversational explanations, discussions, questions, answers, and interactions with the user must be in **Bengali**.
+- **Implementation Plans & Planning Artifacts:** Every implementation plan, task breakdown, architectural proposal, or planning artifact (e.g., `/plan` outputs, pre-task roadmaps) MUST be written in **Bengali**. Technical symbols, file paths, code identifiers, and terminal commands must be preserved in backticks/English for accuracy.
 - **Application Files & Codebase Language:** **STRICTLY ENGLISH ONLY**. All codebase files, source code, inline comments, docstrings, commits, configuration files, and documentation (including `README.md`, `.agents/`, `docs/`, specifications, and architectural documents) must be written in clean, professional **English**. No Bengali text is permitted inside the application or repository files.
+- **Mandatory Pre-Execution Approval Gate:** Before executing any major task, complex architectural milestone, or roadmap phase, the agent must generate a detailed implementation plan artifact and explicitly await user approval before writing code or modifying application files.

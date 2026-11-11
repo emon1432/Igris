@@ -73,8 +73,13 @@ To ensure seamless handovers and continuity across multiple workstations without
    - **STRICT GIT CONSTRAINT:** DO NOT run `git add` or `git commit` autonomously without explicit user instruction. Git staging and commits must be requested by the user.
 
 4. **Universal Language Invariant (MANDATORY):**
-   - **Chat / Conversational Interaction:** Always conducted in **Bengali**.
+   - **Chat / Conversational Interaction & Implementation Plans:** Always conducted in **Bengali**. All implementation plans, task roadmaps, and planning artifacts presented to the user must be written in Bengali (with technical identifiers, symbols, and file paths kept in backticks).
    - **Codebase & Application Files:** **STRICTLY ENGLISH ONLY**. All code, docstrings, inline comments, configuration files, specifications, documentation, and markdown files across the repository must be written in standard, professional English. No Bengali characters inside repo files.
+
+5. **Mandatory Pre-Execution Approval Gate (MANDATORY):**
+   - For any roadmap phase, major architectural milestone, or complex feature implementation, the agent **MUST NOT jump directly into coding or modifying files**.
+   - The agent **MUST FIRST draft a structured implementation plan artifact** detailing the component architecture, file changes, security considerations, and test plan.
+   - The agent must present the plan and explicitly wait for the user's review and approval. Implementation and code modifications may only commence after explicit user confirmation.
 
 ---
 

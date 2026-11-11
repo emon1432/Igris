@@ -1,6 +1,19 @@
+<div align="center">
+
 # Project Igris
 
-> **Linux-First Universal Autonomous OS Operator & Co-Pilot**
+<img src="./docs/assets/igris-banner.jpg" alt="Project Igris - Blood-Red Commander" width="560" style="border-radius: 10px; max-width: 100%;" />
+
+### Linux-First Universal Autonomous OS Operator & Co-Pilot
+
+[![Platform](https://img.shields.io/badge/Platform-Linux-FCC624?logo=linux&logoColor=black)](#)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](#)
+[![Display Architecture](https://img.shields.io/badge/Display-X11%20%7C%20Xvfb%20Virtual%20Display-blueviolet)](#)
+[![Dual-Mode](https://img.shields.io/badge/Mode-Live%20Co--Pilot%20%7C%20Ghost%20Virtual%20Lab-crimson)](#)
+
+*An autonomous Computer Use agent operating via Spatial Screen Vision (VLM), Accessibility Trees (AT-SPI), Virtual Display Isolation (Xvfb), and native input synthesis.*
+
+</div>
 
 ---
 
