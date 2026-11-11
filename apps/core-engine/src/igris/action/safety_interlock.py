@@ -27,6 +27,8 @@ class SafetyInterlockListener:
         self._last_cursor_pos: Optional[tuple[int, int]] = None
         self._expected_cursor_pos: Optional[tuple[int, int]] = None
         self._override_triggered = False
+        self._mouse_listener = None
+        self._key_listener = None
 
     @property
     def is_triggered(self) -> bool:
@@ -96,24 +98,33 @@ class SafetyInterlockListener:
             except Exception:
                 pass
 
-        mouse_listener = mouse.Listener(on_move=on_move)
-        key_listener = keyboard.Listener(on_press=on_press)
+        try:
+            self._mouse_listener = mouse.Listener(on_move=on_move)
+            self._key_listener = keyboard.Listener(on_press=on_press)
+            self._mouse_listener.start()
+            self._key_listener.start()
 
-        mouse_listener.start()
-        key_listener.start()
-
-        while self._is_active:
-            time.sleep(0.05)
-
-        mouse_listener.stop()
-        key_listener.stop()
+            while self._is_active:
+                time.sleep(0.05)
+        except Exception as exc:
+            logger.debug("pynput listener loop closed: %s", exc)
+        finally:
+            if self._mouse_listener:
+                try:
+                    self._mouse_listener.stop()
+                except Exception:
+                    pass
+            if self._key_listener:
+                try:
+                    self._key_listener.stop()
+                except Exception:
+                    pass
 
     def start(self) -> None:
         """Start the background safety listener thread."""
         if self._is_active:
             return
         self._is_active = True
-        self._override_triggered = False
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True, name="SafetyInterlockThread")
         self._thread.start()
         logger.info("SafetyInterlockListener started.")
@@ -121,7 +132,18 @@ class SafetyInterlockListener:
     def stop(self) -> None:
         """Stop the background safety listener."""
         self._is_active = False
+        if self._mouse_listener:
+            try:
+                self._mouse_listener.stop()
+            except Exception:
+                pass
+        if self._key_listener:
+            try:
+                self._key_listener.stop()
+            except Exception:
+                pass
+
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=1.0)
+            self._thread.join(timeout=0.5)
         self._thread = None
         logger.info("SafetyInterlockListener stopped.")
