@@ -19,6 +19,13 @@
     - **Step 5:** Clicked search bar with visual ripple, then typed `"Plabon World"` character-by-character with realistic typing delay.
     - **Step 6:** Moved cursor to the search button `(962, 28)`, triggered click animation, and submitted search.
     - **Step 7:** Loaded YouTube video results, scrolled down through videos, and kept window open for visual verification before clean exit.
+  - **Hardware Microphone Integration & Vocal Acknowledgment:**
+    - Resolved PortAudio library missing warning (`libportaudio2`) by installing the system library.
+    - Verified real-time hardware microphone capture (`MicrophoneCapture`) streaming 2048-byte real audio chunks via ALSA/PipeWire.
+    - Pre-cached local Faster-Whisper STT model weights in `~/.cache/huggingface/hub/` for zero-latency speech recognition.
+    - Configured customized vocal wake-word response: When the user says *"Hey Igris"*, Igris instantly speaks *"Yes, master, how can I help you?"* with a highlighted terminal banner.
+    - Added phonetic variations (`"hey igris"`, `"hey egress"`, `"hey ingress"`, `"hey iris"`, etc.) for robust wake-phrase matching across different accents.
+    - Automated test suite expanded to 54/54 tests passing cleanly.
   - **Runtime Stability & Model Cascade Enhancements:**
     1. **Gemini API Error Resolutions:** Configured `gemini-3.1-flash-lite` as the high-throughput, zero-quota-error primary model with automated fallback cascade across `["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"]`.
     2. **Real-time Step Streaming:** Added `step_callback` to `TaskOrchestrator.execute_task()` and bridged it to `gateway.py` WebSocket broadcast so the web client displays live thoughts and actions in real time.

@@ -107,7 +107,18 @@ class VoiceActivityDetector:
 class WakeWordDetector:
     """Monitors incoming audio stream and matches activation phrases."""
 
-    DEFAULT_WAKE_WORDS = ["hey igris", "igris", "hello igris", "ok igris"]
+    DEFAULT_WAKE_WORDS = [
+        "hey igris",
+        "igris",
+        "hello igris",
+        "ok igris",
+        "hey egress",
+        "hey ingress",
+        "hey iris",
+        "egris",
+        "ingress",
+        "iris",
+    ]
 
     def __init__(
         self,

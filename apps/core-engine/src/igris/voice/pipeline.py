@@ -99,17 +99,24 @@ class VoiceCopilotPipeline:
 
         command = self.wake_detector.strip_wake_phrase(spoken_text)
         if not command:
-            # Wake word only (e.g. user just said "Hey Igris")
+            # Wake word only (e.g. user said "Hey Igris")
+            print("\n" + "=" * 50)
+            print("✨ [WAKE-WORD DETECTED] 'Hey Igris'")
+            print("🔊 Igris: 'Yes, master, how can I help you?'")
+            print("=" * 50 + "\n")
             self.state = VoicePipelineState.SPEAKING
-            await self.tts.speak("Yes, I'm listening.")
+            await self.tts.speak("Yes, master, how can I help you?")
             self.state = VoicePipelineState.LISTENING
             return
 
-        logger.info("Voice command accepted: '%s'", command)
+        print("\n" + "=" * 50)
+        print(f"✨ [VOICE COMMAND] '{command}'")
+        print(f"🔊 Igris: 'Understood, master. Starting task: {command}'")
+        print("=" * 50 + "\n")
 
         # Immediate voice feedback acknowledging task
         self.state = VoicePipelineState.SPEAKING
-        await self.tts.speak(f"Understood. Starting task: {command}")
+        await self.tts.speak(f"Understood, master. Starting task: {command}")
 
         # Execute task via TaskOrchestrator
         self.state = VoicePipelineState.EXECUTING
@@ -121,8 +128,10 @@ class VoiceCopilotPipeline:
             # Post-task vocal report
             self.state = VoicePipelineState.SPEAKING
             if task_result.success:
-                await self.tts.speak("Task completed successfully.")
+                print("\n🔊 Igris: 'Task completed successfully, master.'\n")
+                await self.tts.speak("Task completed successfully, master.")
             else:
+                print(f"\n🔊 Igris: 'Task finished: {task_result.final_message}'\n")
                 await self.tts.speak(f"Task finished: {task_result.final_message}")
         except Exception as e:
             logger.error("Error executing voice task: %s", e)

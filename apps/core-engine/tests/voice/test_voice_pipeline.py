@@ -52,6 +52,35 @@ async def test_voice_pipeline_wake_and_execute():
 
     # Check TTS announcements (starting acknowledgment + task complete)
     assert mock_tts.speak.await_count == 2
-    mock_tts.speak.assert_any_await("Understood. Starting task: open terminal")
-    mock_tts.speak.assert_any_await("Task completed successfully.")
+    mock_tts.speak.assert_any_await("Understood, master. Starting task: open terminal")
+    mock_tts.speak.assert_any_await("Task completed successfully, master.")
     assert pipeline.state == VoicePipelineState.LISTENING
+
+
+@pytest.mark.asyncio
+async def test_voice_pipeline_wake_word_only_reply():
+    """Verify voice pipeline responds with 'Yes, master, how can I help you?' when wake word only is spoken."""
+    mock_orchestrator = MagicMock()
+    mock_stt = MagicMock(spec=WhisperTranscriber)
+    mock_stt.transcribe_pcm.return_value = TranscriptionResult(
+        full_text="Hey Igris",
+        language="en",
+    )
+
+    mock_tts = MagicMock(spec=EdgeTTSClient)
+    mock_tts.speak = AsyncMock(return_value=True)
+
+    mic = MicrophoneCapture()
+    pipeline = VoiceCopilotPipeline(
+        orchestrator=mock_orchestrator,
+        mic=mic,
+        stt=mock_stt,
+        tts=mock_tts,
+    )
+
+    await pipeline._process_utterance(b"\x00" * 32000)
+
+    # Check TTS was called with exact requested phrase
+    mock_tts.speak.assert_awaited_once_with("Yes, master, how can I help you?")
+    assert pipeline.state == VoicePipelineState.LISTENING
+    mock_orchestrator.execute_task.assert_not_called()
