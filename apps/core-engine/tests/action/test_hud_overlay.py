@@ -30,6 +30,9 @@ def test_hud_overlay_flash_and_clear():
     hud.clear()
     assert hud.active_indicator is None
 
+    disabled_hud = DesktopHUDOverlay(display=":0", enabled=False)
+    assert disabled_hud.flash_laser(x=10, y=10) is None
+
 
 @pytest.mark.asyncio
 async def test_hud_overlay_async_flash():

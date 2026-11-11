@@ -62,13 +62,15 @@
 
             <!-- Input Controls -->
             <div class="command-bar">
-                <select id="mode-select" class="mode-select">
+                <label for="mode-select" class="visually-hidden">Execution Mode</label>
+                <select id="mode-select" class="mode-select" aria-label="Execution Mode">
                     <option value="ghost" selected>Ghost Mode (:99)</option>
                     <option value="live">Live Co-Pilot (:0)</option>
                 </select>
 
                 <div class="input-wrapper">
-                    <input type="text" id="command-input" placeholder="Give Igris a task instruction..." autocomplete="off">
+                    <label for="command-input" class="visually-hidden">Task Instruction</label>
+                    <input type="text" id="command-input" placeholder="Give Igris a task instruction..." autocomplete="off" aria-label="Task Instruction">
                     <button id="send-btn" class="send-btn">➔</button>
                 </div>
 

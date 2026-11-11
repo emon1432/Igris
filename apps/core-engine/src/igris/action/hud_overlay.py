@@ -51,13 +51,13 @@ class DesktopHUDOverlay:
         radius: int = 16,
         duration_seconds: float = 0.15,
         label: Optional[str] = None,
-    ) -> TargetIndicator:
+    ) -> Optional[TargetIndicator]:
         """Project a transient laser circle at the target coordinate."""
+        if not self.enabled:
+            return None
+
         indicator = TargetIndicator(x=x, y=y, radius=radius, label=label)
         self.active_indicator = indicator
-
-        if not self.enabled:
-            return indicator
 
         logger.info("HUD Laser Indicator at (%d, %d) [radius: %dpx] on %s", x, y, radius, self.display)
 
@@ -90,12 +90,12 @@ class DesktopHUDOverlay:
         radius: int = 16,
         duration_seconds: float = 0.15,
         label: Optional[str] = None,
-    ) -> TargetIndicator:
+    ) -> Optional[TargetIndicator]:
         """Asynchronously project laser indicator and yield for visual duration."""
         indicator = self.flash_laser(x=x, y=y, radius=radius, duration_seconds=duration_seconds, label=label)
-        if duration_seconds > 0:
+        if indicator and duration_seconds > 0:
             await asyncio.sleep(duration_seconds)
-        self.clear()
+            self.clear()
         return indicator
 
     def clear(self) -> None:

@@ -10,6 +10,13 @@
 - **Active Focus Module:** **Remote Mobile Companion Gateway & Desktop HUD Overlay (`apps/core-engine/src/igris/remote`, `apps/companion-web/`, `apps/core-engine/src/igris/action/hud_overlay.py`)**.
 - **Current Active Task:** **Phase 5: Remote Mobile Companion Gateway & Desktop HUD Overlay COMPLETED & VERIFIED**:
   - **Milestone Status:** 100% Completed & Verified with 52 automated test suites passing across monorepo.
+  - **SonarQube Quality Gate Resolution (12 Issues Resolved):**
+    1. **`gateway.py` (L161, L247):** Prevented premature garbage collection by storing `asyncio.create_task` references in `manager.track_task(...)`.
+    2. **`capture.py` (L153, L210):** Replaced synchronous `subprocess.Popen` in async method with `asyncio.create_subprocess_exec`, and ensured `asyncio.CancelledError` is re-raised rather than swallowed.
+    3. **`pipeline.py` (L139):** Re-raised `asyncio.CancelledError` in background loop and cleanly cancelled task without suppressing error.
+    4. **`tts.py` (L65, L71, L75, L81):** Replaced synchronous subprocess calls with non-blocking `asyncio.create_subprocess_exec` and `await proc.communicate()`.
+    5. **`index.html` (L65, L71):** Associated accessible `<label>` elements with `.visually-hidden` and `aria-label` attributes on form inputs (WCAG 2.0 compliance).
+    6. **`hud_overlay.py` (L47):** Refactored `flash_laser` so that disabled states return `None` while active states return the indicator, avoiding invariant method return warnings.
   - **Completed Components:**
     1. **Remote Protocol Schemas (`protocol.py`):** Bidirectional RPC message contracts (`AuthRequest`, `TaskCommand`, `TaskUpdateMessage`, `TaskCompletedMessage`, `ScreenFrameMessage`, `EmergencyStopMessage`, `SystemStatusMessage`) with standard envelope serialization.
     2. **FastAPI & WebSocket Gateway Hub (`gateway.py`):** High-performance async gateway managing multi-client WebSockets (`/ws/companion`), live JPEG screen previews (`/api/screen/preview`), instant emergency abort (`/api/emergency/stop`), and background task execution bridging.

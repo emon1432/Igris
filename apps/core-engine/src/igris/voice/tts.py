@@ -3,7 +3,6 @@
 import asyncio
 import io
 import logging
-import subprocess
 from typing import Optional
 from pydantic import BaseModel, Field
 
@@ -62,25 +61,24 @@ class EdgeTTSClient:
             # Pipe MP3 bytes directly into ffmpeg -> aplay / pw-play
             # Zero disk writes, completely in-memory streaming
             try:
-                proc = subprocess.Popen(
-                    ["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "wav", "pipe:1"],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
+                proc = await asyncio.create_subprocess_exec(
+                    "ffmpeg", "-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "wav", "pipe:1",
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.DEVNULL,
                 )
-                wav_data, _ = proc.communicate(input=mp3_bytes, timeout=10.0)
+                wav_data, _ = await proc.communicate(input=mp3_bytes)
 
                 # Play WAV data using pw-play or aplay
-                play_cmd = ["pw-play", "-"]
-                player = subprocess.Popen(
-                    play_cmd,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+                player = await asyncio.create_subprocess_exec(
+                    "pw-play", "-",
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL,
                 )
-                player.communicate(input=wav_data, timeout=10.0)
+                await player.communicate(input=wav_data)
                 return True
-            except (subprocess.SubprocessError, FileNotFoundError):
+            except (OSError, FileNotFoundError, asyncio.SubprocessError):
                 # Fallback: if player commands are missing or headless, log and succeed
                 logger.debug("System audio player command finished or skipped in headless mode.")
                 return True

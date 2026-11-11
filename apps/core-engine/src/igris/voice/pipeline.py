@@ -60,20 +60,24 @@ class VoiceCopilotPipeline:
 
     async def _pipeline_loop(self) -> None:
         """Main listening and execution event loop."""
-        while self._is_running:
-            chunk = await self.mic.get_chunk(timeout=0.2)
-            if not chunk:
-                await asyncio.sleep(0.01)
-                continue
+        try:
+            while self._is_running:
+                chunk = await self.mic.get_chunk(timeout=0.2)
+                if not chunk:
+                    await asyncio.sleep(0.01)
+                    continue
 
-            # Process chunk with VAD
-            self.vad.process_chunk(chunk)
+                # Process chunk with VAD
+                self.vad.process_chunk(chunk)
 
-            # Check if utterance boundary detected
-            if self.vad.is_utterance_complete():
-                pcm_utterance = self.vad.get_and_reset_utterance()
-                if pcm_utterance:
-                    await self._process_utterance(pcm_utterance)
+                # Check if utterance boundary detected
+                if self.vad.is_utterance_complete():
+                    pcm_utterance = self.vad.get_and_reset_utterance()
+                    if pcm_utterance:
+                        await self._process_utterance(pcm_utterance)
+        except asyncio.CancelledError:
+            logger.debug("Voice pipeline loop cancelled.")
+            raise
 
     async def _process_utterance(self, pcm_data: bytes) -> None:
         """Transcribe utterance, verify wake phrase, and trigger task."""
@@ -134,9 +138,5 @@ class VoiceCopilotPipeline:
         self.mic.stop()
         if self._loop_task and not self._loop_task.done():
             self._loop_task.cancel()
-            try:
-                await self._loop_task
-            except asyncio.CancelledError:
-                pass
             self._loop_task = None
         logger.info("Voice Co-Pilot Pipeline stopped.")

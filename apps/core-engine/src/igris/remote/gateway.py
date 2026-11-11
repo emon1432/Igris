@@ -36,7 +36,14 @@ class ConnectionManager:
 
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
+        self.background_tasks: Set[asyncio.Task] = set()
         self._lock = asyncio.Lock()
+
+    def track_task(self, task: asyncio.Task) -> asyncio.Task:
+        """Keep a strong reference to background task to prevent premature garbage collection."""
+        self.background_tasks.add(task)
+        task.add_done_callback(self.background_tasks.discard)
+        return task
 
     async def connect(self, websocket: WebSocket) -> None:
         await websocket.accept()
@@ -158,7 +165,7 @@ def create_gateway_app(
             )
             await manager.broadcast(comp_msg)
 
-        asyncio.create_task(run_bg())
+        manager.track_task(asyncio.create_task(run_bg()))
         return {"status": "task_dispatched", "goal": cmd.task_goal, "mode": cmd.mode}
 
     # -------------------------------------------------------------
@@ -244,7 +251,7 @@ def create_gateway_app(
                             )
                             await manager.broadcast(complete_env)
 
-                        asyncio.create_task(run_ws_task())
+                        manager.track_task(asyncio.create_task(run_ws_task()))
 
                     elif msg_type == MessageType.EMERGENCY_STOP.value:
                         logger.warning("Emergency stop received via WebSocket.")

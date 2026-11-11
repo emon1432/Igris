@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import subprocess
 import time
 from typing import AsyncGenerator, Callable, List, Optional
 from pydantic import BaseModel, Field
@@ -150,10 +149,10 @@ class PipeWireLoopbackCapture:
         ]
 
         try:
-            self.process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
+            self.process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
             )
             self._reader_task = asyncio.create_task(self._read_loop())
             logger.info("PipeWire system loopback capture started.")
@@ -162,12 +161,11 @@ class PipeWireLoopbackCapture:
 
     async def _read_loop(self) -> None:
         """Continuously read raw PCM bytes from pw-record stdout."""
-        loop = asyncio.get_event_loop()
         chunk_bytes = self.config.chunk_size * 2 * self.config.channels  # 2 bytes per s16 sample
 
-        while self._is_recording and self.process and self.process.stdout:
-            try:
-                data = await loop.run_in_executor(None, self.process.stdout.read, chunk_bytes)
+        try:
+            while self._is_recording and self.process and self.process.stdout:
+                data = await self.process.stdout.read(chunk_bytes)
                 if not data:
                     break
                 chunk = AudioChunk(
@@ -177,9 +175,10 @@ class PipeWireLoopbackCapture:
                 )
                 if not self._queue.full():
                     await self._queue.put(chunk)
-            except Exception as e:
-                logger.debug("PipeWire loopback read error: %s", e)
-                break
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            logger.debug("PipeWire loopback read error: %s", e)
 
     async def get_chunk(self, timeout: float = 1.0) -> Optional[AudioChunk]:
         """Fetch the next captured system audio chunk."""
@@ -205,18 +204,17 @@ class PipeWireLoopbackCapture:
         self._is_recording = False
         if self._reader_task and not self._reader_task.done():
             self._reader_task.cancel()
-            try:
-                await self._reader_task
-            except asyncio.CancelledError:
-                pass
             self._reader_task = None
 
         if self.process:
-            self.process.terminate()
             try:
-                self.process.wait(timeout=1.0)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
+                self.process.terminate()
+                await asyncio.wait_for(self.process.wait(), timeout=1.0)
+            except (asyncio.TimeoutError, ProcessLookupError, Exception):
+                try:
+                    self.process.kill()
+                except (ProcessLookupError, Exception):
+                    pass
             self.process = None
 
         logger.info("PipeWire system loopback capture stopped.")
