@@ -148,6 +148,10 @@ class VirtualDisplayManager:
 
             if self.socket_path.exists():
                 self._is_running = True
+                try:
+                    subprocess.run(["xsetroot", "-display", self.display, "-solid", "#101626"], capture_output=True, timeout=1.0)
+                except Exception:
+                    pass
                 logger.info(
                     "Virtual display %s successfully initialized (%dx%dx%d).",
                     self.display,

@@ -62,21 +62,56 @@ class TaskOrchestrator:
         self.verification_delay = verification_delay
 
     def _is_stuck(self, history: List[TaskStepRecord]) -> bool:
-        """Detect if agent has repeated the exact same click coordinate 3 times consecutively."""
-        if len(history) < 3:
+        """Detect if agent is repeating identical actions without progressing."""
+        if len(history) < 2:
             return False
 
-        last_three = history[-3:]
-        # Check if all 3 are clicks
-        if not all("click" in step.action_type for step in last_three):
+        # Check for 3 consecutive identical clicks
+        if len(history) >= 3:
+            last_three = history[-3:]
+            if all("click" in step.action_type for step in last_three):
+                coords = [step.target_coordinate for step in last_three if step.target_coordinate]
+                if len(coords) >= 3:
+                    (x1, y1), (x2, y2), (x3, y3) = coords[-3:]
+                    if abs(x1 - x2) <= 5 and abs(y1 - y2) <= 5 and abs(x2 - x3) <= 5 and abs(y2 - y3) <= 5:
+                        return True
+
+        # Check for 2 consecutive terminal actions (e.g. repeated launch attempts)
+        last_two = history[-2:]
+        if all(step.action_type.lower() == "terminal" for step in last_two):
+            return True
+
+        return False
+
+    def _detect_tab_storm(self, history: List[TaskStepRecord], current_action: VisualAction) -> bool:
+        """Detect if agent is repetitively opening browser tabs without progressing."""
+        act_lower = current_action.action_type.lower()
+        text_lower = (current_action.text_input or "").lower()
+        reason_lower = (current_action.reasoning or "").lower()
+
+        browser_keywords = ["chrome", "google-chrome", "firefox", "chromium", "brave", "search?q=", "search"]
+
+        is_tab_opener = False
+        if act_lower in ["hotkey", "press_key"] and "ctrl+t" in text_lower:
+            is_tab_opener = True
+        elif act_lower == "terminal" and any(b in text_lower or b in reason_lower for b in browser_keywords):
+            is_tab_opener = True
+
+        if not is_tab_opener:
             return False
 
-        coords = [step.target_coordinate for step in last_three if step.target_coordinate]
-        if len(coords) < 3:
-            return False
+        # Count how many tab/browser opener actions were executed in history
+        tab_count = 0
+        for step in history:
+            s_type = step.action_type.lower()
+            s_detail = (step.details or "").lower()
+            s_reason = (step.reasoning or "").lower()
+            if "ctrl+t" in s_detail or "ctrl+t" in s_reason:
+                tab_count += 1
+            elif s_type == "terminal" and any(b in s_detail or b in s_reason for b in browser_keywords):
+                tab_count += 1
 
-        (x1, y1), (x2, y2), (x3, y3) = coords[-3:]
-        return abs(x1 - x2) <= 5 and abs(y1 - y2) <= 5 and abs(x2 - x3) <= 5 and abs(y2 - y3) <= 5
+        return tab_count >= 1
 
     async def execute_task(
         self,
@@ -153,6 +188,16 @@ class TaskOrchestrator:
                     task_goal=task_goal,
                     recent_history=action_history_strings,
                 )
+
+                # Check for Tab-Storm Loop (prevent repetitive browser tab opens)
+                if self._detect_tab_storm(self.state.history, action):
+                    logger.warning("Tab-storm detected: Intercepting repetitive browser tab opening.")
+                    action.task_completed = True
+                    action.action_type = "finished"
+                    action.reasoning = (
+                        "Tab-storm safety interlock triggered: Browser tab is already open. "
+                        "Concluded operation to avoid opening multiple tabs."
+                    )
 
                 # Check for completion
                 if action.task_completed or action.action_type.lower() == "finished":

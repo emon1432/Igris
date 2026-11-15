@@ -48,21 +48,20 @@
 | **Phase 2** | Project Registry, Scoped Workspaces & Code Verification | **Completed** | 115/115 tests passing; S-01, V-01 & Client Isolation verified |
 | **Phase 3** | Email Triage, Injection Defense & Verified Reply Drafts | **Completed** | 124/124 tests passing; I-01, I-02, F-01 & Red-Team verified |
 | **Phase 4** | Push-to-Talk Voice, Mobile PWA & Approval Button UI (v1.0) | **Completed** | 128/128 tests passing; M-01 verified; v1.0 Accepted |
-| **Phase 5** | ShoppieFlyBD Analytics, Telegram Bridge & Local PC Tool | **Completed** | 139/139 tests passing; Post-v1 Extensions verified |
+| **Phase 5** | ShoppieFlyBD Analytics, Telegram Bridge & Local PC Tool | **Completed** | 144/144 tests passing; Post-v1 Extensions & Loop Guards verified |
 
 ---
 
-## 3. Modified & Created Files in Phase 5
+## 3. Modified & Created Files in Conversational & Tab-Storm Safety Fix
 
-- `tools/shoppiefly/src/igris_shoppiefly/models.py` (Created)
-- `tools/shoppiefly/src/igris_shoppiefly/client.py` (Created)
-- `tools/shoppiefly/tests/test_shoppiefly_tool.py` (Created)
-- `packages/telegram_bridge/src/igris_telegram/models.py` (Created)
-- `packages/telegram_bridge/src/igris_telegram/bot.py` (Created)
-- `packages/telegram_bridge/tests/test_telegram_bridge.py` (Created)
-- `tools/local_pc/src/igris_local_pc/operator.py` (Created)
-- `tools/local_pc/tests/test_local_pc_tool.py` (Created)
-- `apps/core-engine/src/igris/perception/accessibility.py` (Updated with BoundingBox & query_elements)
-- `apps/core-engine/src/igris/action/mouse_keyboard.py` (Updated with MouseKeyboardDriver alias)
-- `docs/phases/phase-5.md` (Created Phase 5 Completion Report)
+- `apps/core-engine/src/igris/brain/conversational_mind.py` (Added Banglish/Bengali conversational greeting patterns, Islamic Salam routing, and Gemini 3.5 Flash Lite cascade)
+- `apps/core-engine/src/igris/brain/planner.py` (Hardened `_detect_tab_storm` and `_is_stuck` against repetitive terminal browser loops and consecutive identical actions)
+- `apps/core-engine/src/igris/brain/dispatcher.py` (Included executed shell command string in `details` for downstream loop detection)
+- `apps/core-engine/src/igris/brain/vlm_client.py` (Updated default VLM model to `gemini-3.5-flash-lite`)
+- `apps/companion-web/index.html` (Added Ghost Mode standby badge overlay & cache-busted v2.2)
+- `apps/companion-web/css/style.css` (Added styling for `.ghost-standby-banner` & cache-busted v2.2)
+- `apps/companion-web/js/app.js` (Added standby overlay toggle, instant mode switching, and screen preview refresh)
+- `apps/core-engine/tests/brain/test_conversational_mind.py` (Added Banglish, Islamic salam, and Bengali Q&A test cases)
+- `apps/core-engine/tests/brain/test_stuck_detection.py` (Added terminal browser loop and consecutive terminal stuck tests)
+- `docs/phases/phase-5.md` (Updated)
 - `.agents/memory/HANDOVER.md` (Updated)

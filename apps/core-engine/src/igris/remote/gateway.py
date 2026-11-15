@@ -131,10 +131,11 @@ def create_gateway_app(
         )
 
     @app.get("/api/screen/preview")
-    async def get_screen_preview():
+    async def get_screen_preview(display: Optional[str] = None):
         """Capture and return current screen as a downscaled JPEG image."""
         try:
-            frame = screen.capture(display=orch.state.active_display)
+            target_disp = display or orch.state.active_display
+            frame = screen.capture(display=target_disp)
             thumb_frame = frame.downscale(max_dimension=960)
             jpeg_bytes = thumb_frame.to_bytes(format="JPEG", quality=70)
             return Response(content=jpeg_bytes, media_type="image/jpeg")
@@ -427,3 +428,7 @@ def create_gateway_app(
         logger.info("Mounted Companion Web App from: %s", web_dir)
 
     return app
+
+
+# Default ASGI application instance for uvicorn runner
+app = create_gateway_app()

@@ -46,6 +46,11 @@ ACTION TYPES:
 - 'wait': Wait for page/app to load.
 - 'finished': The user's goal has been completely achieved.
 
+SAFETY & TAB-STORM PREVENTATIVE RULES:
+- NEVER open multiple browser tabs in succession.
+- If a browser or search page is already open, read the answer visually and finish immediately with 'finished'.
+- Do NOT repeatedly trigger 'ctrl+t' or terminal browser commands.
+
 OUTPUT FORMAT:
 Return pure, valid JSON matching the following schema:
 {
@@ -81,7 +86,7 @@ class VLMClient:
             AppConfig.load()
 
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+        self.model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
         self.fallback_models = fallback_models or list(DEFAULT_MODELS_CASCADE)
         self._client = None
 

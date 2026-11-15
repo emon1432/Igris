@@ -72,7 +72,7 @@ class ActionDispatcher:
             return DispatchResult(
                 action_type=action_type,
                 success=res.is_success,
-                details=f"Ran shell command (code {res.returncode}): {res.stdout.strip()[:100]}",
+                details=f"Ran shell command '{cmd[:80]}' (code {res.returncode})",
             )
 
         # Resolve spatial coordinates with AT-SPI snap-to-center
