@@ -130,3 +130,7 @@ class InputDriver:
         combination = "+".join(keys)
         logger.debug("Triggering hotkey: %s on %s", combination, self._get_display(display))
         self._run_xdotool(["key", combination], target_display=display)
+
+
+# Alias for tool and driver interfaces
+MouseKeyboardDriver = InputDriver

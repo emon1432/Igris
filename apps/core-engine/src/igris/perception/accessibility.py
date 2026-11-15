@@ -3,7 +3,7 @@
 import logging
 import math
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger("igris.perception.accessibility")
@@ -19,6 +19,18 @@ except Exception as e:
     logger.warning("AT-SPI PyGObject unavailable: %s. Fallback mode active.", e)
 
 
+class BoundingBox(BaseModel):
+    """Component bounding box coordinates."""
+    x: int = 0
+    y: int = 0
+    width: int = 0
+    height: int = 0
+
+    @property
+    def center(self) -> tuple[int, int]:
+        return self.x + (self.width // 2), self.y + (self.height // 2)
+
+
 class AccessibleElement(BaseModel):
     """Represents an accessible UI component detected on the Linux desktop."""
     name: str = ""
@@ -28,7 +40,22 @@ class AccessibleElement(BaseModel):
     y: int = 0
     width: int = 0
     height: int = 0
+    bounds: Optional[BoundingBox] = None
     states: List[str] = Field(default_factory=list)
+    actions: List[str] = Field(default_factory=list)
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.bounds is not None:
+            if self.x == 0 and self.bounds.x != 0:
+                self.x = self.bounds.x
+            if self.y == 0 and self.bounds.y != 0:
+                self.y = self.bounds.y
+            if self.width == 0 and self.bounds.width != 0:
+                self.width = self.bounds.width
+            if self.height == 0 and self.bounds.height != 0:
+                self.height = self.bounds.height
+        elif self.width > 0 or self.height > 0 or self.x > 0 or self.y > 0:
+            self.bounds = BoundingBox(x=self.x, y=self.y, width=self.width, height=self.height)
 
     @property
     def center(self) -> tuple[int, int]:
@@ -186,3 +213,19 @@ class AccessibilityInspector:
         if not candidates:
             return None
         return min(candidates, key=lambda elem: elem.distance_to(x, y))
+
+    def query_elements(
+        self,
+        role_filter: Optional[str] = None,
+        display: Optional[str] = None,
+    ) -> List[AccessibleElement]:
+        """Queries accessible elements, optionally filtered by role."""
+        elements = self.get_elements(display=display)
+        if role_filter:
+            role_clean = role_filter.lower().replace("_", " ")
+            return [elem for elem in elements if role_clean in elem.role.lower().replace("_", " ")]
+        return elements
+
+
+# Alias for legacy and tool imports
+LinuxAccessibilityInspector = AccessibilityInspector
