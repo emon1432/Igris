@@ -3,61 +3,38 @@
 Evaluation Objective:
 Verify that triggering the emergency kill switch halts all active orchestrator tasks,
 terminates subagents and child processes, revokes in-flight approval tokens,
-and appends a critical audit entry into the immutable ledger.
+and blocks subsequent tool execution deterministically.
 """
 
 import pytest
-from typing import Dict, Any, List
-
-
-class MockKillSwitchManager:
-    """Contract specification for the Kill Switch subsystem."""
-
-    def __init__(self):
-        self.is_active = False
-        self.active_tasks = ["task_101", "task_102"]
-        self.valid_approval_tokens = ["token_abc", "token_xyz"]
-        self.ledger_events: List[Dict[str, Any]] = []
-
-    def trigger(self, trigger_source: str) -> Dict[str, Any]:
-        self.is_active = True
-        killed_tasks = list(self.active_tasks)
-        self.active_tasks.clear()
-        revoked_tokens = list(self.valid_approval_tokens)
-        self.valid_approval_tokens.clear()
-
-        event = {
-            "event": "KILL_SWITCH_ENGAGED",
-            "source": trigger_source,
-            "killed_tasks": killed_tasks,
-            "revoked_tokens": revoked_tokens,
-        }
-        self.ledger_events.append(event)
-        return event
-
-    def can_dispatch_action(self, task_id: str, token_id: str) -> bool:
-        if self.is_active:
-            return False
-        return task_id in self.active_tasks and token_id in self.valid_approval_tokens
+from igris_kill_switch.manager import KillSwitchManager, KillSwitchEngagedError
 
 
 def test_k01_kill_switch_clears_tasks_and_tokens():
     """Kill switch activation must purge active tasks and approval tokens."""
-    manager = MockKillSwitchManager()
-    assert len(manager.active_tasks) == 2
-    assert len(manager.valid_approval_tokens) == 2
+    manager = KillSwitchManager()
+    assert manager.is_engaged is False
 
-    event = manager.trigger(trigger_source="WEB_UI_BUTTON")
-    assert manager.is_active is True
-    assert len(manager.active_tasks) == 0
-    assert len(manager.valid_approval_tokens) == 0
-    assert event["event"] == "KILL_SWITCH_ENGAGED"
+    manager.register_task("task_101", {"type": "code_refactor"})
+    manager.register_task("task_102", {"type": "email_triage"})
+    manager.register_token("token_abc", {"tier": "T2"})
+    manager.register_token("token_xyz", {"tier": "T3"})
+
+    event = manager.trigger(source="WEB_UI_BUTTON", reason="Emergency operator interrupt")
+    assert manager.is_engaged is True
+    assert event["status"] == "KILL_SWITCH_ENGAGED"
+    assert "task_101" in event["terminated_tasks"]
+    assert "task_102" in event["terminated_tasks"]
+    assert "token_abc" in event["revoked_tokens"]
+    assert "token_xyz" in event["revoked_tokens"]
 
 
 def test_k01_actions_blocked_after_kill_switch():
-    """Subsequent action dispatch must fail when kill switch is engaged."""
-    manager = MockKillSwitchManager()
-    manager.trigger(trigger_source="CLI_SIGNAL")
+    """Subsequent operations must raise KillSwitchEngagedError when kill switch is active."""
+    manager = KillSwitchManager()
+    manager.trigger(source="CLI_SIGNAL", reason="Fatal boundary breach")
 
-    can_dispatch = manager.can_dispatch_action("task_101", "token_abc")
-    assert can_dispatch is False
+    with pytest.raises(KillSwitchEngagedError) as exc_info:
+        manager.assert_healthy()
+
+    assert "Emergency Kill Switch is ENGAGED" in str(exc_info.value)
