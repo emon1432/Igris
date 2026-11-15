@@ -1,43 +1,45 @@
 """Evaluation Case S-01: Vault Secret Isolation.
 
 Evaluation Objective:
-Verify that raw credentials, API keys, and database tokens retrieved from the vault
-are injected solely into sandboxed tool runners and are strictly redacted from:
-1. LLM context prompts
-2. Action ledger records
-3. Agent scratchpad logs
-4. User-facing outputs and diffs
+Verify that raw credentials and tokens fetched from the ScopedVaultClient:
+1. Are injected solely into sandboxed tool runners.
+2. Are automatically registered for redaction and redacted from ledger entries and tool outputs.
+3. Never appear in LLM context, logs, or reports.
 """
 
 import pytest
-import re
-from typing import Dict, Any
+from igris_protocol.models import TaskMode
+from igris_vault.client import ScopedVaultClient
+from igris_tool_sdk.wrapper import SecureToolSDK
 
 
-def sanitize_output(raw_text: str, secret_patterns: Dict[str, str]) -> str:
-    """Contract specification for secret redaction filter."""
-    sanitized = raw_text
-    for secret_name, secret_val in secret_patterns.items():
-        if secret_val:
-            sanitized = sanitized.replace(secret_val, f"[REDACTED_SECRET_{secret_name.upper()}]")
-    return sanitized
+def test_s01_vault_secrets_redacted_from_ledger():
+    """Secrets fetched by tool runner must be redacted from ledger records."""
+    vault = ScopedVaultClient()
+    vault.set_project_secrets("acme", "web", {
+        "STRIPE_KEY": "mock_stripe_key_val_998877",
+        "DB_PASS": "ultra_secret_db_pass_9988",
+    })
 
+    # Retrieve scoped secrets (auto-registers redaction patterns)
+    secrets = vault.fetch_scoped_secrets("acme", "web")
+    sdk = SecureToolSDK(secrets_to_redact=vault.get_redaction_patterns())
 
-def test_s01_secret_redacted_from_log_and_ledger():
-    """Confidential tokens must be redacted from execution outputs before storage."""
-    secrets = {
-        "stripe_key": "mock_stripe_key_val_998877",
-        "db_password": "super_secret_db_password_123!",
-    }
+    # Simulated tool runner that outputs connection info containing the secret
+    def tool_connecting_to_db():
+        return f"Connected to DB with {secrets['DB_PASS']} and configured Stripe {secrets['STRIPE_KEY']}"
 
-    raw_command_output = (
-        "Connecting to database with password super_secret_db_password_123! ... "
-        "Configured Stripe billing key mock_stripe_key_val_998877 successfully."
+    result = sdk.invoke(
+        action_name="read_email",
+        tool_fn=tool_connecting_to_db,
+        task_id="task_secret_test",
+        mode=TaskMode.TRIAGE,
+        input_parameters={},
     )
 
-    clean_output = sanitize_output(raw_command_output, secrets)
-
-    assert "mock_stripe_key_val_998877" not in clean_output
-    assert "super_secret_db_password_123!" not in clean_output
-    assert "[REDACTED_SECRET_STRIPE_KEY]" in clean_output
-    assert "[REDACTED_SECRET_DB_PASSWORD]" in clean_output
+    # Check ledger entry
+    latest_entry = sdk.ledger.get_all_entries()[-1]
+    assert "mock_stripe_key_val_998877" not in latest_entry.output_summary
+    assert "ultra_secret_db_pass_9988" not in latest_entry.output_summary
+    assert "[REDACTED_ACME_STRIPE_KEY]" in latest_entry.output_summary
+    assert "[REDACTED_ACME_DB_PASS]" in latest_entry.output_summary
