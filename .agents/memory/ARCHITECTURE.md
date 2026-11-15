@@ -1,6 +1,6 @@
-# System Architecture Specification (`ARCHITECTURE.md`)
+# System Architecture Specification (`.agents/memory/ARCHITECTURE.md`)
 
-> **Protocol Rule:** This document serves as the master architectural reference for Igris. Any major subsystem addition or architectural modification must be reflected here.
+> **Protocol Rule:** This document serves as the master living architectural reference across workstations. Any major subsystem addition or architectural modification must be reflected here.
 
 ---
 
@@ -8,106 +8,102 @@
 
 ```mermaid
 flowchart TD
-    subgraph Clients ["1. Clients & Input Channels"]
+    subgraph Clients ["1. Clients & Ingestion Channels"]
         MIC["Desktop Microphone (Wake-Word + STT)"]
-        MOBILE["Mobile Companion (WebRTC / Tailscale)"]
+        MOBILE["Mobile Companion (PWA / WebSockets)"]
         CLI["CLI Controller"]
     end
 
-    subgraph CoreEngine ["2. Igris Core Engine (apps/core-engine)"]
-        ORCHESTRATOR["Central Task Orchestrator"]
-        ROUTER["Dual-Mode Router (Live vs. Ghost)"]
-        VLM_BRAIN["VLM Reasoning Core (ReAct Loop)"]
-        STATE_MGR["Runtime State & Context Manager"]
+    subgraph GatewayBrain ["2. Gateway & Conversational Mind"]
+        GATEWAY["API Gateway (FastAPI / WebSockets)"]
+        INTENT["Intent Classifier & Conversational Brain"]
+        KILL_SWITCH["Global Kill Switch Interceptor"]
     end
 
-    subgraph PerceptionLayer ["3. Perception Layer (Eyes & Ears)"]
-        MSS_CAP["Frame Grabber (MSS)"]
-        ATSPI_INSP["AT-SPI UI Accessibility Inspector"]
-        AUDIO_SINK["PipeWire / PulseAudio Virtual Loopback"]
+    subgraph Orchestration ["3. Task Workspace & Orchestrator"]
+        ORCH["Central Task Orchestrator"]
+        REGISTRY["Client & Project Scope Registry"]
+        COST["Cost Meter & Iteration Budget Limiter"]
+        VERIFIER["Independent Task Verifier"]
     end
 
-    subgraph ActionLayer ["4. OS Action Drivers (The Hands)"]
-        XVFB_MGR["Xvfb Virtual Display Manager (:99)"]
-        INPUT_SIM["Input Simulator (xdotool / ydotool)"]
-        BASH_RUNNER["Async Bash Shell Engine"]
+    subgraph SecurityCore ["4. Deterministic Policy & Ledger"]
+        POLICY["Deterministic Policy Engine (T0-T3 Pure Functions)"]
+        LEDGER["Append-Only Cryptographic Action Ledger"]
+        VAULT["Secret Vault Storage Client"]
     end
 
-    subgraph FeedbackLayer ["5. Feedback & Overlays"]
+    subgraph ToolSDK ["5. Sandboxed Tool Layer"]
+        TOOL_WRAPPER["Tool SDK Wrapper (Policy & Ledger Interceptor)"]
+        TOOL_GIT["Git & Deploy Sandbox Tool"]
+        TOOL_MAIL["Email Client (Triage / Verified Draft)"]
+        TOOL_WEB["Playwright Browser Automation"]
+        TOOL_SHOPPIE["ShoppieFlyBD Analytics API Client"]
+    end
+
+    subgraph OSDrivers ["6. OS Action Drivers & Display Engine"]
+        DUAL_ROUTER["Dual-Mode Display Router"]
+        LIVE_OS["Live Co-Pilot Driver (DISPLAY=:0 + Safety Interlock)"]
+        GHOST_OS["Ghost Virtual Lab (DISPLAY=:99 via Xvfb)"]
         HUD["Desktop Laser Overlay (apps/desktop-overlay)"]
-        TTS["Voice Synthesis (Edge-TTS / Piper)"]
+        TTS["Voice Synthesis (Edge-TTS Pipeline)"]
     end
 
-    MIC --> ORCHESTRATOR
-    MOBILE --> ORCHESTRATOR
-    CLI --> ORCHESTRATOR
+    MIC --> GATEWAY
+    MOBILE --> GATEWAY
+    CLI --> GATEWAY
 
-    ORCHESTRATOR <--> STATE_MGR
-    ORCHESTRATOR --> ROUTER
+    GATEWAY --> KILL_SWITCH
+    KILL_SWITCH --> INTENT
 
-    ROUTER -->|Live Mode :0| INPUT_SIM
-    ROUTER -->|Ghost Mode :99| XVFB_MGR
-    ROUTER -->|CLI Fast Path| BASH_RUNNER
+    INTENT -->|Conversational Q&A / Voice| GATEWAY
+    INTENT -->|Computer Operating Task| ORCH
 
-    INPUT_SIM --> MSS_CAP
-    MSS_CAP --> VLM_BRAIN
-    ATSPI_INSP --> VLM_BRAIN
-    AUDIO_SINK --> VLM_BRAIN
+    ORCH <--> REGISTRY
+    ORCH <--> COST
+    ORCH --> TOOL_WRAPPER
+    ORCH --> VERIFIER
 
-    VLM_BRAIN --> ORCHESTRATOR
+    TOOL_WRAPPER --> POLICY
+    POLICY -->|Permit| LEDGER
+    POLICY -->|Reject| ORCH
+    LEDGER --> VAULT
 
-    INPUT_SIM -->|Visual Feedback| HUD
-    ORCHESTRATOR --> TTS
+    TOOL_WRAPPER --> TOOL_GIT
+    TOOL_WRAPPER --> TOOL_MAIL
+    TOOL_WRAPPER --> TOOL_WEB
+    TOOL_WRAPPER --> TOOL_SHOPPIE
+    TOOL_WRAPPER --> DUAL_ROUTER
+
+    DUAL_ROUTER -->|Live Mode :0| LIVE_OS
+    DUAL_ROUTER -->|Ghost Mode :99| GHOST_OS
+    LIVE_OS --> HUD
+    ORCH --> TTS
     TTS --> MIC
     TTS --> MOBILE
 ```
 
 ---
 
-## 2. Dual-Mode Execution Mechanics
+## 2. Core Architectural Subsystems
 
-### 2.1 Live Co-Pilot Mode (`DISPLAY=:0`)
-* **Target:** Primary physical display for visual collaboration.
-* **Safety Interlock:**
-  - Background thread monitors physical mouse coordinates.
-  - If the user moves the mouse ($\Delta d > 10\text{px}$), `agent.pause()` triggers immediately and yields input control.
-* **Visual Feedback:**
-  - `apps/desktop-overlay` projects a transient, non-intrusive laser ring or bounding box on the target coordinate before dispatching clicks.
+### 2.1 Conversational Brain & Intent Routing
+- **Dual Intent Pipeline:**
+  - **Conversational Route:** Directly synthesizes dialogue or answers screen questions without triggering desktop tool manipulation or mouse clicks.
+  - **Operational Route:** Passes actionable user instructions to the Task Orchestrator within an isolated `TaskContext`.
 
-### 2.2 Ghost Mode (`DISPLAY=:99`)
-* **Target:** Isolated virtual framebuffer managed by Xvfb.
-* **Isolation Guarantees:**
-  - Isolated from active windows and user interactions on `:0`.
-  - Application commands spawned under `DISPLAY=:99 <cmd> &`.
-  - Input events and frame captures routed exclusively through the `:99` display socket.
+### 2.2 Supervised Policy Engine (T0 to T3)
+- Pure deterministic Python functions enforcing non-negotiable boundaries:
+  - **T0 (Read-Only):** Automatic execution; logged in ledger.
+  - **T1 (Local/Reversible):** Automatic execution in isolated branch/sandbox; verified before finish.
+  - **T2 (External Impact):** Blocked until signed `ApprovalToken` is issued via on-screen UI button click.
+  - **T3 (Irreversible/Financial):** Blocked until signed `ApprovalToken` with attached proof artifacts and source verification is confirmed via on-screen UI button click.
+  - **Speech Boundary:** Voice input ("yes", "approve") cannot grant T2/T3 approval tokens.
 
----
+### 2.3 Immutable Action Ledger
+- Hash-chained append-only record storing `(timestamp, task_id, tool_name, risk_tier, client_id, inputs, approval_token, output_summary, entry_hash)`.
+- Database role restricted strictly to `INSERT` and `SELECT` operations.
 
-## 3. Autonomous Reasoning Loop (ReAct Loop)
-
-```
-[User Task] ───> 1. Observe (Screen Frame + AT-SPI Tree)
-                       │
-                       ▼
-                 2. Reason (Plan Next Action: Click / Type / Scroll / Bash)
-                       │
-                       ▼
-                 3. Act (Dispatch to Virtual or Primary Display)
-                       │
-                       ▼
-                 4. Verify (Compare Result Frame against Target State)
-                       │
-      [Pending] ◄──────┴──────► [Completed] ───> Voice / Notification Feedback
-```
-
----
-
-## 4. Coordinate Translation & Target Resolution
-
-Models output normalized coordinates in the $[0, 1000]$ range. Translation to display pixels:
-
-$$X_{actual} = \left\lfloor \frac{X_{norm}}{1000} \times \text{Display Width} \right\rfloor$$
-$$Y_{actual} = \left\lfloor \frac{Y_{norm}}{1000} \times \text{Display Height} \right\rfloor$$
-
-When AT-SPI accessibility elements are available within the bounding neighborhood, the component center is resolved deterministically:
-$$\text{Target Center} = \left( x + \frac{w}{2}, y + \frac{h}{2} \right)$$
+### 2.4 Dual-Mode Execution Mechanics
+- **Live Co-Pilot Mode (`DISPLAY=:0`):** Direct interaction on user's primary desktop with active mouse/Escape safety interlock and transient HUD laser crosshairs.
+- **Ghost Virtual Lab Mode (`DISPLAY=:99`):** Fully isolated background execution on Xvfb display socket.

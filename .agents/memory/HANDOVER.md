@@ -6,74 +6,80 @@
 
 ## 1. Current Objective / Active Sprint
 
-- **Monorepo High-Level Goal:** Build a Linux-first Universal Autonomous OS Operator & Co-Pilot (Project Igris) powered by VLM spatial vision, AT-SPI accessibility, dual-mode execution (Live Co-Pilot on `:0` vs Ghost Virtual Lab on `:99`), and remote mobile companionship.
-- **Active Focus Module:** **Autonomous VLM Resilience & Live Operational Deployment (`apps/core-engine/src/igris/brain/vlm_client.py`, `.env`)**.
-- **Current Active Task:** **Live Visible On-Screen Autonomous Browser Automation COMPLETED & VERIFIED**:
-  - **Milestone Status:** 100% Completed & Demonstrated live on user's primary display (`DISPLAY=:0`) with visible on-screen browser and laser cursor interaction.
-  - **Visible Live Automation Demonstration Execution:**
-    - Ran live visible browser automation: `visible_browser_demo.py` on primary display (`:0`).
-    - **Step 1:** Successfully spawned visible maximized Google Chrome browser on user's desktop.
-    - **Step 2:** Navigated to YouTube directly.
-    - **Step 3:** Injected and projected glowing neon laser cursor (`#FF0055`) with cyan ripple pulse.
-    - **Step 4:** Glided cursor visibly across screen to YouTube search bar `(669, 28)`.
-    - **Step 5:** Clicked search bar with visual ripple, then typed `"Plabon World"` character-by-character with realistic typing delay.
-    - **Step 6:** Moved cursor to the search button `(962, 28)`, triggered click animation, and submitted search.
-    - **Step 7:** Loaded YouTube video results, scrolled down through videos, and kept window open for visual verification before clean exit.
-  - **Hardware Microphone Integration & Vocal Acknowledgment:**
-    - Resolved PortAudio library missing warning (`libportaudio2`) by installing the system library.
-    - Verified real-time hardware microphone capture (`MicrophoneCapture`) streaming 2048-byte real audio chunks via ALSA/PipeWire.
-    - Pre-cached local Faster-Whisper STT model weights in `~/.cache/huggingface/hub/` for zero-latency speech recognition.
-    - Configured customized vocal wake-word response: When the user says *"Hey Igris"*, Igris instantly speaks *"Yes, master, how can I help you?"* with a highlighted terminal banner.
-    - Added phonetic variations (`"hey igris"`, `"hey egress"`, `"hey ingress"`, `"hey iris"`, etc.) for robust wake-phrase matching across different accents.
-    - Automated test suite expanded to 54/54 tests passing cleanly.
-  - **Runtime Stability & Model Cascade Enhancements:**
-    1. **Gemini API Error Resolutions:** Configured `gemini-3.1-flash-lite` as the high-throughput, zero-quota-error primary model with automated fallback cascade across `["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"]`.
-    2. **Real-time Step Streaming:** Added `step_callback` to `TaskOrchestrator.execute_task()` and bridged it to `gateway.py` WebSocket broadcast so the web client displays live thoughts and actions in real time.
-    3. **Automated Test Suite Expansion:** 53/53 tests passing cleanly in `pytest`.
-  - **Completed Components:**
-    1. **Remote Protocol Schemas (`protocol.py`):** Bidirectional RPC message contracts (`AuthRequest`, `TaskCommand`, `TaskUpdateMessage`, `TaskCompletedMessage`, `ScreenFrameMessage`, `EmergencyStopMessage`, `SystemStatusMessage`) with standard envelope serialization.
-    2. **FastAPI & WebSocket Gateway Hub (`gateway.py`):** High-performance async gateway managing multi-client WebSockets (`/ws/companion`), live JPEG screen previews (`/api/screen/preview`), instant emergency abort (`/api/emergency/stop`), and background task execution bridging.
-    3. **Desktop HUD Laser Overlay (`hud_overlay.py`):** Visual laser pointer indicator for Live Co-Pilot mode (`DISPLAY=:0`), projecting transient target crosshairs before clicks and keystrokes are executed.
-    4. **Action Dispatcher Integration (`dispatcher.py`):** Automatically flashes the HUD laser overlay when dispatching actions on `:0` in Live mode.
-    5. **Mobile Companion PWA Web Client (`apps/companion-web/`):** Full-featured responsive progressive web application (`index.html`, `css/style.css`, `js/app.js`) supporting Push-to-Talk voice recording, real-time screen canvas stream, live agent thoughts stream, mode switching, and one-tap emergency stop.
-    6. **CLI Integration (`cli.py`):** Added `--gateway`, `--host`, and `--port` CLI options for launching the remote companion server.
-    7. **Automated Test Suite:** 52/52 unit and integration tests passing across all packages (actions, perception, brain, voice, remote).
-  - **Immediate Next Steps:**
-    1. User review and git commit/push for Phase 5.
-    2. Monorepo end-to-end integration and demonstration.
-  - **Files Modified This Session:**
-    - `apps/core-engine/src/igris/remote/protocol.py` (Created)
-    - `apps/core-engine/src/igris/remote/gateway.py` (Created)
-    - `apps/core-engine/src/igris/action/hud_overlay.py` (Created)
-    - `apps/companion-web/index.html` (Created)
-    - `apps/companion-web/css/style.css` (Created)
-    - `apps/companion-web/js/app.js` (Created)
-    - `apps/core-engine/src/igris/brain/dispatcher.py` (Integrated HUD overlay)
-    - `apps/core-engine/src/igris/remote/__init__.py` (Updated exports)
-    - `apps/core-engine/src/igris/cli.py` (Added `--gateway` support)
-    - `apps/core-engine/tests/remote/test_protocol.py` (Created)
-    - `apps/core-engine/tests/remote/test_gateway.py` (Created)
-    - `apps/core-engine/tests/action/test_hud_overlay.py` (Created)
-    - `.agents/memory/HANDOVER.md` (Updated)
+- **Monorepo High-Level Goal:** Build a Linux-first Supervised Personal AI Operations Assistant & Omni-Co-Pilot (Project Igris) for Khairul Islam Emon (@Khairul Islam Emon).
+- **Active Focus Phase:** **Phase 0 — Foundation, Specifications, Architecture & Safety Evaluation Suite Scaffolding**.
+- **Current Milestone Status:** **Phase 0 COMPLETED & VERIFIED (81/81 Automated Tests Passing)**:
+  - **Core Directives & Plan:**
+    - Created `CLAUDE.md` at repository root defining the 8 unalterable directives, T0–T3 risk hierarchy, and architectural invariants.
+    - Authored comprehensive `docs/PLAN.md` adapting the 18-page specification: Vision, Scope (v1 = Phases 0–4, Phase 5 = Extensions), Threat Model, Inviolable Design Principles, Risk Hierarchy, and Evals.
+    - Authored `docs/SPEC.md` detailing operational modes (Conversational/Screen Q&A vs Triage Mode vs Work Mode), data models, tool mediation contracts, and proof-of-completion standards.
+    - Authored `docs/ARCHITECTURE.md` and updated `.agents/memory/ARCHITECTURE.md` detailing the end-to-end multi-layer pipeline: Conversational Brain $\rightarrow$ Scoped Orchestrator $\rightarrow$ Pure-Code Policy Engine $\rightarrow$ Action Ledger $\rightarrow$ Tool SDK $\rightarrow$ OS Drivers.
+    - Authored `docs/SECURITY.md` detailing the threat model (prompt injection, credential theft, client impersonation, financial claims, voice mishearing, approval fatigue).
+    - Authored `docs/OPEN_QUESTIONS.md` cataloging 7 architectural decisions requiring operator review prior to Phase 1.
+    - Updated `.agents/memory/DECISIONS.md` with **ADR-007: Supervised Operations Paradigm & Deterministic Policy Engine (T0-T3)**.
+  - **Evaluation Test Suite Scaffolding (`evals/`):**
+    - Built evaluation test cases covering all 10 core safety invariants:
+      - `evals/cases/test_p01_approval_gate.py`: P-01 (T2/T3 blocked without screen button approval).
+      - `evals/cases/test_p02_triage_readonly.py`: P-02 (Triage mode loads only read-only tools).
+      - `evals/cases/test_k01_kill_switch.py`: K-01 (Emergency kill switch terminates tasks and revokes tokens).
+      - `evals/cases/test_c01_cost_meter.py`: C-01 (Loop stops upon budget or iteration exhaustion).
+      - `evals/cases/test_s01_vault_isolation.py`: S-01 (Secrets redacted from prompts, logs, and ledger).
+      - `evals/cases/test_v01_proof_of_completion.py`: V-01 (No task completed without diff/test/screenshot proof).
+      - `evals/cases/test_i01_injection_containment.py`: I-01 (Prompt injection cannot trigger mutating tools).
+      - `evals/cases/test_i02_client_spoofing.py`: I-02 (Forged client senders trigger immediate security alert).
+      - `evals/cases/test_f01_financial_verification.py`: F-01 (Financial claims require system-of-record validation).
+      - `evals/cases/test_m01_voice_approval_boundary.py`: M-01 (Voice cannot authorize T2/T3 actions; screen button strictly required).
+    - Added test fixtures in `evals/fixtures/` (`mails/sample_inbox.json`, `injection/payloads.json`, `clients/mock_registry.json`).
+    - Added test harness in `evals/runner/eval_runner.py`.
+    - Automated test verification: **81/81 tests passing** (54 engine tests + 27 eval assertions).
 
 ---
 
 ## 2. Sprint Roadmap Overview
 
-| Phase | Focus Area | Status | Target |
+| Phase | Focus Area | Status | Target / Gate |
 | :--- | :--- | :--- | :--- |
-| **Phase 0** | Workspace Architecture, Multi-PC Memory, & Guardrails | **Completed** | 100% complete workspace foundation |
-| **Phase 1** | OS Action Drivers, Virtual Display (Xvfb), & Input Simulator | **Completed** | 11/11 automated tests passed |
-| **Phase 2** | Screen Perception Engine (MSS + AT-SPI + VLM Spatial Mapping) | **Completed** | 22/22 automated tests passed (MSS + AT-SPI + VLM) |
-| **Phase 3** | Autonomous Reasoning Loop (ReAct: Observe $\rightarrow$ Act $\rightarrow$ Verify) | **Completed** | 27/27 automated tests passed (Full ReAct loop) |
-| **Phase 4** | Local Voice Pipeline & Audio Loopback (Wake-word, STT, TTS, Meet) | **Completed** | 41/41 automated tests passed (Voice + Meeting) |
-| **Phase 5** | Remote Mobile Companion Gateway (WebRTC / Tailscale) & Desktop HUD | **Completed** | 52/52 automated tests passed (Gateway + HUD) |
+| **Phase 0** | Specifications, Architecture & Safety Eval Scaffolding | **Completed** | 81/81 tests passing; PLAN, SPEC, ARCHITECTURE, SECURITY approved |
+| **Phase 1** | Deterministic Policy Engine, Ledger, Kill Switch & Cost Meter | **Pending Approval** | P-01, P-02, K-01, C-01 passing on concrete implementations |
+| **Phase 2** | Project Registry, Scoped Workspaces & Code Verification | **Planned** | S-01, V-01 passing; client isolation verified |
+| **Phase 3** | Email Triage, Injection Defense & Verified Reply Drafts | **Planned** | I-01, I-02, F-01 passing; red-team injection tests |
+| **Phase 4** | Push-to-Talk Voice, Mobile PWA & Approval Button UI (v1.0) | **Planned** | M-01 passing; mobile end-to-end approval flow |
+| **Phase 5** | ShoppieFlyBD Analytics, Telegram/WhatsApp & Desktop Ops | **Planned** | Phase 5 extension tools |
 
 ---
 
-## 3. Environment & Prerequisites
+## 3. Pending Operator Decisions Before Phase 1 (from `docs/OPEN_QUESTIONS.md`)
 
-- **OS:** Linux (Ubuntu/Debian environment).
-- **Display Server:** X11 / Wayland with XWayland support.
-- **Required System Packages:** `xvfb`, `xdotool`, `imagemagick`, `ffmpeg`, `at-spi2-core`, `gir1.2-atspi-2.0`.
-- **Python Version:** Python 3.10+ in dedicated virtual environment (`venv`).
+1. **Host Server Location (Q-01):** Dedicated self-hosted Linux VPS vs Cloud server? *(Recommended: Self-hosted Linux VPS)*.
+2. **Backend Language Stack (Q-02):** Maintain Python 3.10+ across Gateway, Orchestrator, Policy Engine, and Tool SDK (leveraging our working engine)? *(Recommended: Python for backend + JS/TS for web PWA)*.
+3. **Outbound Push Channel (Q-05):** Telegram Bot API vs Official WhatsApp Business Cloud API for real-time mobile push notifications and approval buttons? *(Recommended: Telegram Bot for instant interactive approval buttons; WhatsApp for official templates or draft-only)*.
+4. **Client AI Restrictions (Q-06):** Are there specific client repositories that cannot touch external LLM APIs? *(Default: Configure in registry as `ai_restricted: true`)*.
+
+---
+
+## 4. Modified & Created Files in This Session
+
+- `CLAUDE.md` (Created)
+- `docs/PLAN.md` (Created)
+- `docs/SPEC.md` (Created)
+- `docs/ARCHITECTURE.md` (Created)
+- `docs/SECURITY.md` (Created)
+- `docs/OPEN_QUESTIONS.md` (Created)
+- `docs/decisions/ADR-0007-supervised-operations-policy-engine.md` (Created)
+- `.agents/memory/DECISIONS.md` (Updated)
+- `.agents/memory/ARCHITECTURE.md` (Updated)
+- `evals/fixtures/mails/sample_inbox.json` (Created)
+- `evals/fixtures/injection/payloads.json` (Created)
+- `evals/fixtures/clients/mock_registry.json` (Created)
+- `evals/cases/test_p01_approval_gate.py` (Created)
+- `evals/cases/test_p02_triage_readonly.py` (Created)
+- `evals/cases/test_k01_kill_switch.py` (Created)
+- `evals/cases/test_c01_cost_meter.py` (Created)
+- `evals/cases/test_s01_vault_isolation.py` (Created)
+- `evals/cases/test_v01_proof_of_completion.py` (Created)
+- `evals/cases/test_i01_injection_containment.py` (Created)
+- `evals/cases/test_i02_client_spoofing.py` (Created)
+- `evals/cases/test_f01_financial_verification.py` (Created)
+- `evals/cases/test_m01_voice_approval_boundary.py` (Created)
+- `evals/runner/eval_runner.py` (Created)
+- `.agents/memory/HANDOVER.md` (Updated)

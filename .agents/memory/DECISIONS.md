@@ -14,6 +14,7 @@
 | **ADR-004** | [Multi-App Monorepo Workspace Architecture](#adr-004-multi-app-monorepo-workspace-architecture) | 2026-11-10 | **Accepted** | Repository Layout |
 | **ADR-005** | [Hybrid Perception Strategy: VLM Spatial Vision & Linux AT-SPI Tree](#adr-005-hybrid-perception-strategy-vlm-spatial-vision--linux-at-spi-tree) | 2026-11-10 | **Accepted** | Perception Layer |
 | **ADR-006** | [Strict Language Separation: English Codebase, Bengali Dialogue](#adr-006-strict-language-separation-english-codebase-bengali-dialogue) | 2026-11-11 | **Accepted** | Communication & Codebase |
+| **ADR-007** | [Supervised Operations Paradigm & Deterministic Policy Engine (T0-T3)](#adr-007-supervised-operations-paradigm--deterministic-policy-engine-t0-t3) | 2026-11-15 | **Accepted** | Core Security & Policy |
 
 ---
 
@@ -114,3 +115,29 @@ Mixing languages inside application files creates maintenance friction, syntax c
 Enforce strict separation of languages:
 1. **Conversational Communication:** All user-facing explanations and discussions are held in **Bengali**.
 2. **Application Files & Codebase:** Strictly written in standard, professional **English** (all code, comments, docstrings, README files, ADRs, and specifications). No Bengali characters permitted in codebase files.
+
+---
+
+## ADR-007: Supervised Operations Paradigm & Deterministic Policy Engine (T0-T3)
+
+### Status
+**Accepted** (2026-11-15)
+
+### Context & Problem Statement
+Autonomous AI agents that execute external mutations (sending emails, modifying production code, performing financial transactions) without strict human-in-the-loop oversight present unacceptable catastrophic risks. Furthermore, relying on LLM system prompts for security guardrails is fundamentally flawed due to prompt injection vulnerabilities and non-deterministic behavior.
+
+### Decision
+1. **Supervised by Default:** The agent operates as an operator and preparer. Irreversible, external, or mutating actions require explicit approval.
+2. **Deterministic Pure-Code Policy Engine:** All tool calls are mediated through standard code that validates the operational mode (`TRIAGE` vs `WORK`), client scope, and risk tier (T0 to T3). LLMs are strictly forbidden from participating in security policy decisions.
+3. **Risk Tier Hierarchy:**
+   - **T0 (Read-Only):** Autonomous execution; logged in ledger.
+   - **T1 (Local/Reversible):** Autonomous execution in branch/sandbox; owner reviews artifacts.
+   - **T2 (External Impact):** Screen button approval mandatory; diff/draft previewed.
+   - **T3 (Irreversible/Financial):** Screen button approval mandatory; proof attached, source verified.
+4. **Speech Boundary:** Voice input cannot grant T2/T3 approvals; on-screen UI button confirmation is strictly required.
+5. **Immutable Action Ledger:** Every tool call is cryptographically chained and recorded in an append-only ledger (`INSERT` and `SELECT` only).
+6. **Proof Before Completion:** No task completion is recognized without verifiable artifacts (passing automated tests, git diffs, screenshots).
+
+### Consequences
+- **Positive:** Robust immunity against prompt injection escaping the sandbox, complete auditability, and zero risk of accidental unapproved outbound communications.
+- **Negative:** Requires disciplined UI approval flow and independent verifier architecture.

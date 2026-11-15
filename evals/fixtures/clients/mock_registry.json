@@ -1,0 +1,20 @@
+[
+  {
+    "client_id": "client_acme",
+    "client_name": "Acme Global Corp",
+    "project_id": "acme_web",
+    "verified_senders": ["john@acme.com", "sarah@acme.com"],
+    "allowed_domains": ["acme.com"],
+    "ai_restricted": false,
+    "vault_path": "vault://clients/acme/production"
+  },
+  {
+    "client_id": "client_fintech",
+    "client_name": "Strict FinTech Inc",
+    "project_id": "fintech_core",
+    "verified_senders": ["security@fintech.io"],
+    "allowed_domains": ["fintech.io"],
+    "ai_restricted": true,
+    "vault_path": "vault://clients/fintech/production"
+  }
+]
