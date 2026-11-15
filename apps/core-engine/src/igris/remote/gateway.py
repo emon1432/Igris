@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import io
+import json
 import logging
 import os
 import time
@@ -11,10 +12,17 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, stat
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from igris.brain.planner import TaskExecutionSummary, TaskOrchestrator
+from igris.brain.conversational_mind import ConversationalMind, UserIntent
 from igris.core.state import AgentStatus, ExecutionMode
 from igris.perception.screen import ScreenCaptureEngine
+from igris.remote.approval_manager import (
+    ApprovalManager,
+    global_approval_manager,
+    VoiceApprovalDisallowedError,
+)
 from igris.remote.protocol import (
     AuthRequest,
     AuthResponse,
@@ -29,6 +37,11 @@ from igris.remote.protocol import (
 )
 
 logger = logging.getLogger("igris.remote.gateway")
+
+
+class DecisionPayload(BaseModel):
+    decision: str  # "APPROVE" | "REJECT"
+    channel: str = "SCREEN_BUTTON"
 
 
 class ConnectionManager:
@@ -80,6 +93,8 @@ class ConnectionManager:
 def create_gateway_app(
     orchestrator: Optional[TaskOrchestrator] = None,
     screen_engine: Optional[ScreenCaptureEngine] = None,
+    approval_manager: Optional[ApprovalManager] = None,
+    conversational_mind: Optional[ConversationalMind] = None,
     auth_token: str = "igris-secure-token",
     static_web_dir: Optional[str] = None,
 ) -> FastAPI:
@@ -97,6 +112,8 @@ def create_gateway_app(
     manager = ConnectionManager()
     orch = orchestrator or TaskOrchestrator()
     screen = screen_engine or ScreenCaptureEngine()
+    approvals = approval_manager or global_approval_manager
+    mind = conversational_mind or ConversationalMind()
     server_start_time = time.time()
 
     # -------------------------------------------------------------
@@ -141,12 +158,69 @@ def create_gateway_app(
         await manager.broadcast(stop_msg)
         return {"status": "emergency_stop_triggered", "success": True}
 
+    @app.get("/api/approvals/pending")
+    async def get_pending_approvals():
+        """Returns active staged approvals awaiting screen button confirmation."""
+        active = approvals.get_pending_requests()
+        return [req.model_dump() for req in active]
+
+    @app.post("/api/approvals/{request_id}/decision")
+    async def submit_approval_decision(request_id: str, payload: DecisionPayload):
+        """Submit approval decision from on-screen UI button (M-01 enforcement)."""
+        try:
+            token = approvals.resolve_decision(
+                request_id=request_id,
+                decision=payload.decision,
+                channel=payload.channel,
+            )
+            resp = {
+                "success": True,
+                "request_id": request_id,
+                "decision": payload.decision,
+                "token_id": token.token_id if token else None,
+            }
+            # Broadcast resolution
+            broadcast_env = CompanionEnvelope(
+                type=MessageType.TASK_UPDATE,
+                payload={
+                    "step_number": 0,
+                    "action_type": "approval_resolved",
+                    "thought": f"Approval {request_id} resolved: {payload.decision}",
+                    "status": "approved" if token else "rejected",
+                },
+            )
+            await manager.broadcast(broadcast_env)
+            return resp
+        except VoiceApprovalDisallowedError as vad_err:
+            raise HTTPException(status_code=400, detail=str(vad_err))
+        except KeyError as ke:
+            raise HTTPException(status_code=404, detail=str(ke))
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
     @app.post("/api/task/execute")
     async def execute_task_endpoint(cmd: TaskCommand):
-        """Execute task asynchronously in background ReAct loop."""
+        """Execute task asynchronously with conversational intent routing."""
+        routing = mind.route_request(cmd.task_goal)
+
+        # Conversational Fast Path (Greetings / Status / Chit-chat)
+        if not routing["execute_os_actions"]:
+            comp_msg = CompanionEnvelope(
+                type=MessageType.TASK_COMPLETED,
+                payload=TaskCompletedMessage(
+                    task_goal=cmd.task_goal,
+                    success=True,
+                    total_steps=1,
+                    duration_seconds=0.1,
+                    final_message=routing["response"],
+                ).model_dump(),
+            )
+            await manager.broadcast(comp_msg)
+            return {"status": "conversational_completed", "response": routing["response"]}
+
+        # Operational Computer Operating Task Path
         mode = ExecutionMode.LIVE if cmd.mode.lower() == "live" else ExecutionMode.GHOST
 
-        # Launch background task execution
         async def run_bg():
             async def on_step(step_rec, status):
                 step_env = CompanionEnvelope(
@@ -166,7 +240,6 @@ def create_gateway_app(
                 mode=mode,
                 step_callback=on_step,
             )
-            # Broadcast completion
             comp_msg = CompanionEnvelope(
                 type=MessageType.TASK_COMPLETED,
                 payload=TaskCompletedMessage(
@@ -195,7 +268,6 @@ def create_gateway_app(
             while True:
                 data_text = await websocket.receive_text()
                 try:
-                    import json
                     raw = json.loads(data_text)
                     msg_type = raw.get("type")
                     payload = raw.get("payload", {})
@@ -233,9 +305,26 @@ def create_gateway_app(
 
                     elif msg_type == MessageType.TASK_COMMAND.value:
                         cmd = TaskCommand(**payload)
+                        routing = mind.route_request(cmd.task_goal)
+
+                        # Conversational Fast Path (No browser/desktop actions!)
+                        if not routing["execute_os_actions"]:
+                            comp_msg = CompanionEnvelope(
+                                type=MessageType.TASK_COMPLETED,
+                                payload=TaskCompletedMessage(
+                                    task_goal=cmd.task_goal,
+                                    success=True,
+                                    total_steps=1,
+                                    duration_seconds=0.1,
+                                    final_message=routing["response"],
+                                ).model_dump(),
+                            )
+                            await manager.broadcast(comp_msg)
+                            continue
+
+                        # Operational Computer Task Path
                         mode = ExecutionMode.LIVE if cmd.mode.lower() == "live" else ExecutionMode.GHOST
 
-                        # Notify client task started
                         start_update = CompanionEnvelope(
                             type=MessageType.TASK_UPDATE,
                             payload=TaskUpdateMessage(
@@ -247,7 +336,6 @@ def create_gateway_app(
                         )
                         await manager.broadcast(start_update)
 
-                        # Run task
                         async def run_ws_task():
                             async def on_ws_step(step_rec, status):
                                 step_env = CompanionEnvelope(
@@ -280,6 +368,29 @@ def create_gateway_app(
                             await manager.broadcast(complete_env)
 
                         manager.track_task(asyncio.create_task(run_ws_task()))
+
+                    elif msg_type == "APPROVAL_DECISION":
+                        req_id = payload.get("request_id")
+                        decision = payload.get("decision", "APPROVE")
+                        channel = payload.get("channel", "SCREEN_BUTTON")
+                        try:
+                            token = approvals.resolve_decision(req_id, decision, channel)
+                            ack = CompanionEnvelope(
+                                type=MessageType.TASK_UPDATE,
+                                payload={
+                                    "step_number": 0,
+                                    "action_type": "approval_resolved",
+                                    "thought": f"Approval {req_id} decision: {decision}",
+                                    "status": "approved" if token else "rejected",
+                                },
+                            )
+                            await manager.broadcast(ack)
+                        except Exception as e:
+                            err_env = CompanionEnvelope(
+                                type=MessageType.ERROR,
+                                payload={"error": str(e)},
+                            )
+                            await manager.send_personal(websocket, err_env)
 
                     elif msg_type == MessageType.EMERGENCY_STOP.value:
                         logger.warning("Emergency stop received via WebSocket.")

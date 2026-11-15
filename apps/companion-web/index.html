@@ -27,7 +27,10 @@
             <section class="screen-preview-container">
                 <div class="screen-header">
                     <h3>Host Screen Stream</h3>
-                    <button class="icon-btn" id="refresh-screen-btn" title="Refresh Screen">🔄</button>
+                    <div class="header-actions">
+                        <button class="icon-btn" id="capture-note-btn" title="Quick Task Capture (বাসায় গিয়ে দেখব)">📝</button>
+                        <button class="icon-btn" id="refresh-screen-btn" title="Refresh Screen">🔄</button>
+                    </div>
                 </div>
                 <div class="screen-wrapper">
                     <img id="live-screen" src="" alt="Awaiting host screen preview..." class="screen-image">
@@ -52,6 +55,25 @@
                 </div>
             </section>
         </main>
+
+        <!-- Interactive Screen-Button Approval Modal (M-01) -->
+        <div id="approval-modal" class="approval-modal hidden">
+            <div class="approval-card">
+                <div class="approval-header">
+                    <span class="approval-badge" id="appr-tier-badge">T2 ACTION</span>
+                    <h3 id="appr-title">Action Approval Required</h3>
+                </div>
+                <p class="appr-instruction">Review the diff/draft payload below. Confirmation requires physical button interaction:</p>
+                <pre class="appr-preview" id="appr-preview-content">git diff preview...</pre>
+                <div class="appr-meta">
+                    <span class="appr-hash" id="appr-hash">SHA256: ---</span>
+                </div>
+                <div class="appr-actions">
+                    <button id="appr-reject-btn" class="appr-btn reject-btn">✗ Reject</button>
+                    <button id="appr-approve-btn" class="appr-btn approve-btn">✓ Approve & Execute</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Bottom Controller Bar -->
         <footer class="controls-footer">
@@ -85,4 +107,3 @@
     <script src="js/app.js"></script>
 </body>
 </html>
-

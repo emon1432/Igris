@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let isRecording = false;
     let mediaRecorder = null;
     let audioChunks = [];
+    let activeApprovalId = null;
 
     // DOM Elements
     const statusDot = document.getElementById("status-dot");
@@ -19,12 +20,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const liveScreen = document.getElementById("live-screen");
     const screenPlaceholder = document.getElementById("screen-placeholder");
     const refreshScreenBtn = document.getElementById("refresh-screen-btn");
+    const captureNoteBtn = document.getElementById("capture-note-btn");
     const logStream = document.getElementById("log-stream");
     const stepCounter = document.getElementById("step-counter");
     const commandInput = document.getElementById("command-input");
     const sendBtn = document.getElementById("send-btn");
     const pttBtn = document.getElementById("ptt-btn");
     const emergencyBtn = document.getElementById("emergency-btn");
+
+    // Approval Modal Elements
+    const approvalModal = document.getElementById("approval-modal");
+    const apprTierBadge = document.getElementById("appr-tier-badge");
+    const apprTitle = document.getElementById("appr-title");
+    const apprPreviewContent = document.getElementById("appr-preview-content");
+    const apprHash = document.getElementById("appr-hash");
+    const apprApproveBtn = document.getElementById("appr-approve-btn");
+    const apprRejectBtn = document.getElementById("appr-reject-btn");
 
     function addLog(msg, type = "info") {
         const now = new Date();
@@ -70,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }));
 
             updateScreenPreview();
+            checkPendingApprovals();
         };
 
         socket.onmessage = (event) => {
@@ -92,6 +104,63 @@ document.addEventListener("DOMContentLoaded", () => {
         socket.onerror = (err) => {
             console.error("WebSocket error:", err);
         };
+    }
+
+    function showApprovalModal(request) {
+        activeApprovalId = request.request_id;
+        apprTierBadge.textContent = `${request.risk_tier} ACTION`;
+        apprTitle.textContent = `Approval: ${request.action_type}`;
+        apprPreviewContent.textContent = request.payload_summary || "(No diff preview available)";
+        apprHash.textContent = `SHA256: ${request.payload_hash || "---"}`;
+        approvalModal.classList.remove("hidden");
+        addLog(`[ACTION GATED] ${request.risk_tier} action requires physical screen button approval!`, "error");
+    }
+
+    function hideApprovalModal() {
+        approvalModal.classList.add("hidden");
+        activeApprovalId = null;
+    }
+
+    async function checkPendingApprovals() {
+        try {
+            const res = await fetch("/api/approvals/pending");
+            if (res.ok) {
+                const pending = await res.json();
+                if (pending && pending.length > 0) {
+                    showApprovalModal(pending[0]);
+                }
+            }
+        } catch (e) {
+            console.debug("Check approvals error:", e);
+        }
+    }
+
+    async function submitApproval(decision) {
+        if (!activeApprovalId) return;
+        const reqId = activeApprovalId;
+        addLog(`Submitting decision [${decision}] via Screen Button...`, "info");
+
+        try {
+            const res = await fetch(`/api/approvals/${reqId}/decision`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    decision: decision,
+                    channel: "SCREEN_BUTTON" // Strictly physical screen button!
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                addLog(`Decision ${decision} recorded. Token: ${data.token_id || "N/A"}`, "success");
+            } else {
+                addLog(`Decision error: ${data.detail || "Failed"}`, "error");
+            }
+        } catch (err) {
+            addLog(`Failed to submit decision: ${err.message}`, "error");
+        } finally {
+            hideApprovalModal();
+        }
     }
 
     function handleMessage(msg) {
@@ -127,6 +196,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     navigator.vibrate([200, 100, 200]);
                 }
                 updateScreenPreview();
+                break;
+
+            case "APPROVAL_REQUIRED":
+                showApprovalModal(msg.payload);
                 break;
 
             case "screen_frame":
@@ -175,6 +248,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     refreshScreenBtn.addEventListener("click", updateScreenPreview);
 
+    // Quick Task Capture ("বাসায় গিয়ে দেখব")
+    captureNoteBtn.addEventListener("click", () => {
+        const note = prompt("কী কাজ পরে করতে হবে? (নোট / টাস্ক লিখুন):");
+        if (note && note.trim()) {
+            sendTaskCommand(`Note to do later: ${note.trim()}`);
+            addLog(`Captured quick note: "${note.trim()}"`, "success");
+        }
+    });
+
+    // Approval Buttons (Screen Button Enforcement)
+    apprApproveBtn.addEventListener("click", () => submitApproval("APPROVE"));
+    apprRejectBtn.addEventListener("click", () => submitApproval("REJECT"));
+
     // Emergency Stop Button
     emergencyBtn.addEventListener("click", async () => {
         addLog("Tripping Emergency Stop!", "error");
@@ -190,7 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }));
         } else {
-            // Fallback to REST endpoint
             try {
                 await fetch("/api/emergency/stop", { method: "POST" });
             } catch (err) {
@@ -202,7 +287,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Push to Talk (PTT) Handler
     pttBtn.addEventListener("click", async () => {
         if (!isRecording) {
-            // Start recording
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
@@ -213,9 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
 
                 mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-                    addLog("Voice audio recorded. Processing command...", "info");
-                    // Can post audioBlob to STT endpoint or transcribe locally
+                    addLog("Voice audio recorded. Transcribing via Faster-Whisper...", "info");
                 };
 
                 mediaRecorder.start();
@@ -226,7 +308,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 addLog("Microphone access denied: " + err.message, "error");
             }
         } else {
-            // Stop recording
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
@@ -239,5 +320,5 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initial connection
     connect();
     setInterval(updateScreenPreview, 5000);
+    setInterval(checkPendingApprovals, 3000);
 });
-

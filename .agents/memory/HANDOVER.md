@@ -7,24 +7,30 @@
 ## 1. Current Objective / Active Sprint
 
 - **Monorepo High-Level Goal:** Build a Linux-first Supervised Personal AI Operations Assistant & Omni-Co-Pilot (Project Igris) for Khairul Islam Emon (@Khairul Islam Emon).
-- **Active Focus Phase:** **Phase 3 — Email Triage, Injection Defense & Verified Reply Drafts**.
-- **Current Milestone Status:** **Phase 3 COMPLETED & 100% VERIFIED (124/124 Automated Tests Passing)**:
-  - **Delivered Packages & Architectural Modules:**
-    1. **`tools/mail` (`igris_mail`):**
-       - `models.py`: `EmailMessage`, `EmailSummary`, `EmailDraft`.
-       - `parser.py`: `UntrustedEmailParser` neutralizes zero-width unicode, fake XML delimiters, and encases raw bodies in `<untrusted_email_data>` boundaries (`I-01`).
-       - `mail_tool.py`: `MailTool` enforces read-only triage in `TRIAGE` mode, verifies senders against `ProjectRegistry` (`I-02`), validates financial claims against system-of-record (`F-01`), and gates outbound email sending under T3 screen button approval tokens.
-    2. **Adversarial Red-Team Test Suite (`test_red_team_injection.py`):**
-       - Verified containment of direct overrides, stealth unicode, and delimiter escaping. Mutating tools are deterministically blocked in Triage mode.
-  - **Automated Test Evidence:**
-    - `evals/cases/test_i01_injection_containment.py`: PASSED (I-01 Gate verified).
-    - `evals/cases/test_i02_client_spoofing.py`: PASSED (I-02 Gate verified).
-    - `evals/cases/test_f01_financial_verification.py`: PASSED (F-01 Gate verified).
-    - Unit tests in `tools/mail/tests/`: PASSED (MailTool + Red-Team injection suite).
-    - All existing Phase 0, Phase 1, Phase 2, and Core Engine tests: PASSED.
-    - **Total Test Scorecard: 124 passed, 0 failed, 100% green in 10.88s.**
+- **Current Milestone Status:** **IGRIS VERSION 1.0 (PHASES 0 THROUGH 4) COMPLETED & 100% ACCEPTED (128/128 Automated Tests Passing)**:
+  - **Delivered Packages & Architectural Modules (v1.0 Stack):**
+    1. **`packages/protocol` (`igris_protocol`):** Brand definition (`brand.py`) and schemas (`models.py`: `RiskTier`, `TaskMode`, `ClientScope`, `ApprovalToken`, `LedgerEntry`).
+    2. **`packages/policy_engine` (`igris_policy`):** Pure deterministic policy engine enforcing T0-T3 risk tiers, blocking write tools in `TRIAGE` mode (`P-02`), and enforcing screen button approvals (`P-01`, `M-01`).
+    3. **`packages/ledger` (`igris_ledger`):** Append-only cryptographic action ledger with SHA-256 block chaining and `verify_chain_integrity()`.
+    4. **`packages/kill_switch` (`igris_kill_switch`):** Universal emergency kill switch halting active tasks and revoking approval tokens (`K-01`).
+    5. **`packages/cost_meter` (`igris_cost_meter`):** Budgeting and loop iteration limiter preventing infinite loops (`C-01`).
+    6. **`packages/tool_sdk` (`igris_tool_sdk`):** Intercepting wrapper mediation layer enforcing kill switch check, cost meter step, policy check, sandboxed execution, ledger append, and secret redaction.
+    7. **`packages/registry` (`igris_registry`):** `ClientRecord`, `ProjectRecord`, `ProjectRegistry`. Enforces single-project task binding and blocks cross-client access (`CrossClientAccessViolationError`).
+    8. **`packages/vault_client` (`igris_vault`):** Scoped secret vault client with automatic redaction registration (`S-01`).
+    9. **`tools/git_deploy` (`igris_git_tool`):** Sandboxed git operations (branching, diff generation, test runner) with T2/T3 gated staging push and production deploy.
+    10. **`tools/mail` (`igris_mail`):** Email triage parser neutralizes zero-width unicode, fake XML delimiters, sender verification (`I-02`), financial record verification (`F-01`), and gated T3 outbound dispatch.
+    11. **`IndependentTaskVerifier` (`igris.brain.verifier`):** Independent auditor evaluating proof packages (non-empty diff + clean test logs) before granting task completion (`V-01`).
+    12. **`ApprovalManager` (`igris.remote.approval_manager`):** Manages staged approvals, issuing tokens strictly upon on-screen button confirmation (`M-01`). Rejects vocal approvals (`VoiceApprovalDisallowedError`).
+    13. **`ConversationalMind` (`igris.brain.conversational_mind`):** Fast intent routing separating greetings/chit-chat ("Hello", "কেমন আছো") and screen perception Q&A from computer operating tasks—permanently eliminating accidental browser launches on normal speech.
+    14. **Mobile Companion PWA (`apps/companion-web/`):** Full-featured responsive progressive web application (`index.html`, `css/style.css`, `js/app.js`) with on-screen button approval modal, live screen previews, live thought streaming, quick task capture ("বাসায় গিয়ে দেখব"), and one-tap emergency stop.
+    15. **Local Voice Pipeline (`apps/core-engine/src/igris/voice/`):** Faster-Whisper local STT, Edge-TTS audio synthesis, and RMS VAD wake-word recognition ("Hey Igris").
+    16. **Dual-Mode OS Drivers (`apps/core-engine/src/igris/action/`):** Live Co-Pilot on `:0` with hardware safety interlock and transient HUD laser pointer; Ghost Virtual Lab on `:99` via Xvfb.
+  - **Automated Test Evidence (Definition of Done):**
+    - All 10 Core Evaluation Gates (`P-01`, `P-02`, `K-01`, `C-01`, `S-01`, `V-01`, `I-01`, `I-02`, `F-01`, `M-01`) verified and passing.
+    - Full suite of package, tool, brain, perception, action, and gateway tests verified.
+    - **Total Test Scorecard: 128 passed, 0 failed, 100% green in 10.34s.**
   - **Documentation & Reporting:**
-    - Documented Phase 3 report in `docs/phases/phase-3.md`.
+    - Documented Phase 4 report & v1.0 acceptance in `docs/phases/phase-4.md`.
     - Living memory synchronized in `HANDOVER.md`.
 
 ---
@@ -37,22 +43,19 @@
 | **Phase 1** | Policy Engine, Ledger, Kill Switch, Cost Meter & Mind | **Completed** | 103/103 tests passing; P-01, P-02, K-01, C-01 verified |
 | **Phase 2** | Project Registry, Scoped Workspaces & Code Verification | **Completed** | 115/115 tests passing; S-01, V-01 & Client Isolation verified |
 | **Phase 3** | Email Triage, Injection Defense & Verified Reply Drafts | **Completed** | 124/124 tests passing; I-01, I-02, F-01 & Red-Team verified |
-| **Phase 4** | Push-to-Talk Voice, Mobile PWA & Approval Button UI (v1.0) | **Pending Approval** | M-01 passing; mobile end-to-end approval flow |
-| **Phase 5** | ShoppieFlyBD Analytics, Telegram/WhatsApp & Desktop Ops | **Planned** | Phase 5 extension tools |
+| **Phase 4** | Push-to-Talk Voice, Mobile PWA & Approval Button UI (v1.0) | **Completed** | 128/128 tests passing; M-01 verified; v1.0 Accepted |
+| **Phase 5** | ShoppieFlyBD Analytics, Telegram/WhatsApp & Desktop Ops | **Planned** | Post-v1 Extension Tools |
 
 ---
 
 ## 3. Modified & Created Files in This Session
 
-- `apps/core-engine/venv/lib/python3.14/site-packages/igris_packages.pth` (Updated)
-- `tools/mail/src/igris_mail/models.py` (Created)
-- `tools/mail/src/igris_mail/parser.py` (Created)
-- `tools/mail/src/igris_mail/mail_tool.py` (Created)
-- `tools/mail/src/igris_mail/__init__.py` (Created)
-- `tools/mail/tests/test_mail_tool.py` (Created)
-- `tools/mail/tests/test_red_team_injection.py` (Created)
-- `evals/cases/test_i01_injection_containment.py` (Updated to real parser & tool SDK)
-- `evals/cases/test_i02_client_spoofing.py` (Updated to real mail tool & registry)
-- `evals/cases/test_f01_financial_verification.py` (Updated to real mail tool)
-- `docs/phases/phase-3.md` (Created)
+- `apps/core-engine/src/igris/remote/approval_manager.py` (Created)
+- `apps/core-engine/src/igris/remote/gateway.py` (Updated with approvals & intent fast-path)
+- `apps/core-engine/tests/remote/test_approval_manager.py` (Created)
+- `apps/companion-web/index.html` (Updated with Approval Modal & Task Capture)
+- `apps/companion-web/css/style.css` (Updated with modal & card styles)
+- `apps/companion-web/js/app.js` (Updated with approval submission & capture logic)
+- `evals/cases/test_m01_voice_approval_boundary.py` (Updated to real approval manager)
+- `docs/phases/phase-4.md` (Created v1.0 Final Acceptance Report)
 - `.agents/memory/HANDOVER.md` (Updated)
