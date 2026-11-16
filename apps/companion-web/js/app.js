@@ -55,6 +55,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const filterTabs = document.querySelectorAll(".filter-tab");
     const autoscrollToggle = document.getElementById("autoscroll-toggle");
     const clearLogsBtn = document.getElementById("clear-logs-btn");
+    const resetChatBtn = document.getElementById("reset-chat-btn");
+
+    // Multi-Turn Conversational Session ID
+    let sessionId = localStorage.getItem("igris_chat_session_id");
+    if (!sessionId) {
+        sessionId = "session-" + Math.random().toString(36).substring(2, 10);
+        localStorage.setItem("igris_chat_session_id", sessionId);
+    }
 
     // DOM Elements - Approval Modal (M-01)
     const approvalModal = document.getElementById("approval-modal");
@@ -118,6 +126,45 @@ document.addEventListener("DOMContentLoaded", () => {
         logStream.appendChild(card);
         if (autoscrollToggle && autoscrollToggle.checked) {
             logStream.scrollTop = logStream.scrollHeight;
+        }
+    }
+
+    function addUserMessageBubble(msg) {
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        const card = document.createElement("div");
+        card.className = "user-message-bubble";
+        card.innerHTML = `
+            <div class="user-bubble-header">
+                <span class="user-bubble-icon">👤</span>
+                <span class="user-bubble-title">YOU</span>
+                <span class="user-bubble-time">${timeStr}</span>
+            </div>
+            <div class="user-bubble-body">${msg}</div>
+        `;
+        logStream.appendChild(card);
+        if (autoscrollToggle && autoscrollToggle.checked) {
+            logStream.scrollTop = logStream.scrollHeight;
+        }
+    }
+
+    async function loadChatHistory() {
+        try {
+            const res = await fetch(`/api/chat/history?session_id=${sessionId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(m => {
+                        if (m.role === "user") {
+                            addUserMessageBubble(m.content);
+                        } else if (m.role === "model") {
+                            addAssistantReplyCard(m.content);
+                        }
+                    });
+                }
+            }
+        } catch (e) {
+            console.debug("Failed to load chat history:", e);
         }
     }
 
@@ -200,6 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             updateScreenPreview();
             checkPendingApprovals();
+            loadChatHistory();
         };
 
         socket.onmessage = (event) => {
@@ -381,13 +429,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (stepCounter) stepCounter.textContent = "Starting";
 
         addLog(`Submitting Task: "${goalText}" [MODE: ${mode.toUpperCase()}]`, "info", "system");
+        addUserMessageBubble(goalText);
 
         socket.send(JSON.stringify({
             type: "task_command",
             payload: {
                 task_goal: goalText,
                 mode: mode,
-                max_iterations: 25
+                max_iterations: 25,
+                session_id: sessionId
             }
         }));
 
@@ -425,6 +475,11 @@ document.addEventListener("DOMContentLoaded", () => {
             standbyBanner.style.display = (mode === "ghost") ? "block" : "none";
         }
 
+        const waylandNotice = document.getElementById("wayland-notice-banner");
+        if (waylandNotice) {
+            waylandNotice.style.display = (mode === "live") ? "block" : "none";
+        }
+
         updateScreenPreview();
     }
 
@@ -458,6 +513,19 @@ document.addEventListener("DOMContentLoaded", () => {
         logStream.innerHTML = "";
         addLog("Log stream cleared.", "info", "system");
     });
+
+    if (resetChatBtn) {
+        resetChatBtn.addEventListener("click", async () => {
+            try {
+                await fetch(`/api/chat/session/${sessionId}`, { method: "DELETE" });
+            } catch (e) {
+                console.debug("Error clearing session on server:", e);
+            }
+            sessionId = "session-" + Math.random().toString(36).substring(2, 10);
+            localStorage.setItem("igris_chat_session_id", sessionId);
+            addLog("Conversational memory buffer reset. Started fresh dialogue session.", "success", "system");
+        });
+    }
 
     // -----------------------------------------------------------------
     // PRESETS & QUICK CHIPS

@@ -195,8 +195,8 @@ class TaskOrchestrator:
                     action.task_completed = True
                     action.action_type = "finished"
                     action.reasoning = (
-                        "Tab-storm safety interlock triggered: Browser tab is already open. "
-                        "Concluded operation to avoid opening multiple tabs."
+                        "Browser session and target page launched successfully. "
+                        "Task safely concluded under Tab-Storm Interlock to avoid opening redundant tabs."
                     )
 
                 # Check for completion

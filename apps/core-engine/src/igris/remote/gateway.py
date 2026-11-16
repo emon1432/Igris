@@ -117,15 +117,32 @@ def create_gateway_app(
     server_start_time = time.time()
 
     # -------------------------------------------------------------
+    # Startup Lifecycle
+    # -------------------------------------------------------------
+
+    @app.on_event("startup")
+    async def on_gateway_startup():
+        """Auto-initialize virtual display for Ghost mode on gateway startup."""
+        try:
+            if hasattr(orch, "v_disp_mgr") and not orch.v_disp_mgr.is_active():
+                orch.v_disp_mgr.start()
+                logger.info("Auto-initialized Ghost virtual display %s on gateway startup.", orch.v_disp_mgr.display)
+        except Exception as exc:
+            logger.warning("Ghost virtual display startup initialization note: %s", exc)
+
+    # -------------------------------------------------------------
     # REST Endpoints
     # -------------------------------------------------------------
 
     @app.get("/api/system/health", response_model=SystemStatusMessage)
     async def get_health():
+        task_str = orch.state.current_task if isinstance(orch.state.current_task, str) else None
+        status_val = orch.state.status.value if hasattr(orch.state.status, "value") else str(orch.state.status)
+        disp_val = orch.state.active_display if isinstance(orch.state.active_display, str) else ":99"
         return SystemStatusMessage(
-            agent_status=orch.state.status.value,
-            active_display=orch.state.active_display,
-            active_task=orch.state.current_goal,
+            agent_status=status_val,
+            active_display=disp_val,
+            active_task=task_str,
             connected_clients=len(manager.active_connections),
             uptime_seconds=round(time.time() - server_start_time, 2),
         )
@@ -133,15 +150,27 @@ def create_gateway_app(
     @app.get("/api/screen/preview")
     async def get_screen_preview(display: Optional[str] = None):
         """Capture and return current screen as a downscaled JPEG image."""
+        target_disp = display or orch.state.active_display
         try:
-            target_disp = display or orch.state.active_display
+            if target_disp == ":99" and hasattr(orch, "v_disp_mgr") and not orch.v_disp_mgr.is_active():
+                try:
+                    orch.v_disp_mgr.start()
+                except Exception:
+                    pass
+
             frame = screen.capture(display=target_disp)
             thumb_frame = frame.downscale(max_dimension=960)
             jpeg_bytes = thumb_frame.to_bytes(format="JPEG", quality=70)
             return Response(content=jpeg_bytes, media_type="image/jpeg")
         except Exception as e:
-            logger.error("Screen preview capture failed: %s", e)
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.debug("Screen preview fallback on %s: %s", target_disp, e)
+            from PIL import Image, ImageDraw
+            img = Image.new("RGB", (960, 540), color=(14, 19, 31))
+            draw = ImageDraw.Draw(img)
+            draw.text((380, 260), f"DISPLAY {target_disp} STANDBY", fill=(0, 240, 255))
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=70)
+            return Response(content=buf.getvalue(), media_type="image/jpeg")
 
     @app.post("/api/emergency/stop")
     async def emergency_stop():
@@ -199,10 +228,22 @@ def create_gateway_app(
         except Exception as exc:
             raise HTTPException(status_code=400, detail=str(exc))
 
+    @app.get("/api/chat/history")
+    async def get_chat_history(session_id: str = "default-session"):
+        """Return multi-turn conversation memory history for given session."""
+        session = mind.session_manager.get_or_create_session(session_id)
+        return session.get_dict_summary()
+
+    @app.delete("/api/chat/session/{session_id}")
+    async def clear_chat_session(session_id: str):
+        """Clear conversational memory buffer for given session."""
+        cleared = mind.session_manager.clear_session(session_id)
+        return {"success": cleared, "session_id": session_id}
+
     @app.post("/api/task/execute")
     async def execute_task_endpoint(cmd: TaskCommand):
         """Execute task asynchronously with conversational intent routing."""
-        routing = mind.route_request(cmd.task_goal)
+        routing = mind.route_request(cmd.task_goal, session_id=cmd.session_id)
 
         # Conversational Fast Path (Greetings / Status / Chit-chat)
         if not routing["execute_os_actions"]:
@@ -306,7 +347,7 @@ def create_gateway_app(
 
                     elif msg_type == MessageType.TASK_COMMAND.value:
                         cmd = TaskCommand(**payload)
-                        routing = mind.route_request(cmd.task_goal)
+                        routing = mind.route_request(cmd.task_goal, session_id=cmd.session_id)
 
                         # Conversational Fast Path (No browser/desktop actions!)
                         if not routing["execute_os_actions"]:

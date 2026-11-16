@@ -1,11 +1,13 @@
-"""Conversational Brain & Intent Routing Subsystem.
+"""Stateful Conversational Mind & LLM-Native Intent Routing Subsystem.
 
 Solves the core user experience challenge:
-Distinguishes natural human conversation, factual Q&A, and screen queries from computer operating tasks.
-- If user says 'Hello', 'salam dao', or chats, responds naturally via text / Edge-TTS without opening browsers or clicking.
-- If user asks 'what is the temperature now in dhaka?', answers immediately via text/API without touching browser.
-- If user asks 'What is on my screen?', analyzes screen visually without mutating anything.
-- If user requests actionable OS work ('open vs code', 'click submit', 'run tests'), routes into the Supervised Task Orchestrator.
+Provides full multi-turn conversational memory (ChatGPT / Gemini style) while reliably distinguishing
+natural human conversation, greetings, and factual Q&A from computer operating tasks.
+- Maintains multi-turn context across dialogue turns so follow-up references ('সেগুলো কি কি?',
+  'আমি প্রথমে কি জিজ্ঞেস করেছিলাম?') are resolved accurately.
+- Eliminates brittle regex matching for human speech.
+- Grounds Igris's authentic identity, tech stack, and respectful persona (created for Khairul Islam Emon).
+- Dispatches hands-on OS actions only when explicit operational tasks are requested.
 """
 
 from enum import Enum
@@ -13,52 +15,54 @@ import logging
 import os
 import re
 import urllib.request
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from igris_protocol.models import TaskMode
+from igris.brain.session_memory import ChatSession, SessionManager, global_session_manager
 
 logger = logging.getLogger("igris.brain.conversational_mind")
 
 
 class UserIntent(str, Enum):
-    CONVERSATIONAL = "CONVERSATIONAL"      # Greetings, chit-chat, assistant identity
+    CONVERSATIONAL = "CONVERSATIONAL"      # Greetings, chit-chat, assistant identity, multi-turn memory
     GENERAL_QA = "GENERAL_QA"              # Weather, facts, explanations, calculations (zero clicks/tabs)
     SCREEN_QA = "SCREEN_QA"                # Visual screen explanation (zero clicks)
     OPERATIONAL_TASK = "OPERATIONAL_TASK"  # Actionable computer task (desktop/browser/git)
 
 
-# Common conversational patterns in English, Bengali, and Banglish (Latin script Bengali)
-CONVERSATIONAL_PATTERNS = [
-    # English greetings
-    r"^(hi|hello|hey|hola|greetings)(\s|$)",
-    # Bengali greetings (Bengali script)
-    r"^(হ্যালো|হাই|হে|কেমন আছো|কেমন আছেন|নমস্কার|সালাম|আসসালামু আলাইকুম)(\s|$)",
-    # Banglish greetings & phrases
-    r"\b(salam|assalam|assalamu\s*alaikum|slaam|amake\s+salam\s+dao|salam\s+dao|salam\s+nin)\b",
-    r"\b(kemon\s+acho|kemon\s+achen|ki\s+obostha|ki\s+khobor|valoing|bhalo\s+achi|bhalo\s+acho|bhalo\s+achen)\b",
-    r"\b(shuvo\s+shokal|shuvo\s+ratri|shuvo\s+bikal|dhonnobad|onek\s+dhonnobad)\b",
-    # Identity / Capabilities
-    r"^(who are you|what can you do|introduce yourself)(\s|$)",
-    r"^(তুমি কে|তোমার পরিচয় কী|তোমার নাম কি|তুমি কি করতে পারো|তোমার কাজ কী|তুমি কে রে)(\s|$)",
-    r"\b(tumi\s+ke|tomar\s+nam\s+ki|apni\s+ke|apnar\s+nam\s+ki|introduce\s+yourself)\b",
-    # Courtesy & compliments
-    r"^(thank you|thanks|ধন্যবাদ)(\s|$)",
-    r"^(good morning|good evening|শুভ সকাল|শুভ রাত্রি)(\s|$)",
-]
+SYSTEM_INSTRUCTION = """You are Igris (ইগ্রিস), an intelligent, highly capable personal AI Operations Assistant & Omni-Co-Pilot created specifically for and paired with Khairul Islam Emon (@Khairul Islam Emon).
 
-# Information & Q&A patterns (strictly zero OS actions)
-GENERAL_QA_PATTERNS = [
-    # Weather and temperature (matches typos like tempreture, temparature)
-    r"(temp[ea]?r[ea]?tur[ea]?|weather|forecast|humidity|climate|rain|cold|hot|warm)",
-    r"(তাপমাত্রা|আবহাওয়া|বৃষ্টি|গরম|ঠান্ডা|রোদ|বাতাস)",
-    # Question starters English
-    r"^(what is|what are|what's|how is|how to|who is|who was|when is|when was|where is|where are|why is|why does|tell me about|explain|calculate|can you speak|do you know)",
-    # Question starters Bengali
-    r"^(কী|কি|কেন|কোথায়|কখন|কত|কীভাবে|কিভাবে|বলো|ব্যাখ্যা করো|তুমি কি|আপনি কি|আমাকে বলো)",
-    # Banglish question starters & query words
-    r"^(ki|kno|keno|kobe|kothay|kivabe|amake\s+bolo|bolo\s+to|tumi\s+ki|apni\s+ki)",
-    r"\b(bolte\s+parbe|kotha\s+bolte\s+parbe|janen\s+ki|jano\s+ki)\b",
-    # Ending with question mark
-    r"\?$",
+CORE IDENTITY & REAL TECH STACK:
+- Name: Igris (বাংলায়: ইগ্রিস).
+- Creator & Partner: Khairul Islam Emon (ইমন স্যার / ইমন ভাই).
+- True Engineering Architecture:
+  * Backend: Python 3.10+, AsyncIO, FastAPI, Pydantic v2.
+  * AI Mind: Google Gemini Multimodal APIs via google-genai SDK.
+  * Desktop Operating: Linux AT-SPI accessibility inspection, Xvfb virtual framebuffer isolation (:99), PyAutoGUI input drivers, and MSS screen perception.
+  * Voice Pipeline: Local Faster-Whisper STT, Edge-TTS synthesis, and wake-word detector.
+  * Safety & Protocol: Cryptographic SHA-256 block ledger, T0-T3 risk policy engine, and emergency kill-switch.
+
+CONVERSATIONAL BEHAVIOR & RULES:
+1. Always maintain complete contextual awareness of prior conversation turns in this session.
+2. When the user asks follow-up questions referencing prior messages (e.g. "সেগুলো কি কি?", "আরেকটু বিস্তারিত বলো", "আমি প্রথমে কি জিজ্ঞেস করেছিলাম?"), accurately resolve the context from your conversation history.
+3. Address the user respectfully and warmly as "ইমন স্যার" (or "ইমন ভাই"). NEVER use subservient or feudal titles like "মালিক" or "প্রভু".
+4. Speak natural, articulate, culturally grounded Bengali (বাংলা) or English matching the user's language.
+5. If the user asks about your technologies or identity, explain your authentic tech stack accurately with pride.
+6. If the user asks for factual info, explanations, or general knowledge (including Wikipedia topics), provide a concise, high-quality summary directly without opening browsers or taking OS actions.
+"""
+
+# Explicit operational action triggers that require hands-on OS/browser execution
+OPERATIONAL_PATTERNS = [
+    r"\b(open|launch)\s+(google[- ]chrome|chrome|firefox|browser|terminal|vs\s*code|youtube)\b",
+    r"(ব্রাউজার|ক্রোম|টার্মিনাল)\s*(ওপেন|খোল|চালু|রান)\s*(করো|কর)?",
+    r"\byoutube\b.*(প্লে|চালাও|play|search\s*and\s*play)",
+    r"\b(play|search)\b.*(on\s+youtube|in\s+youtube)",
+    r"\b(deploy|push)\s+(staging|production|prod|branch)\b",
+    r"\b(triage|summarize)\s+(my\s+)?(unread\s+)?(emails?|inbox|mail)\b",
+    r"(ইমেইল|ইনবক্স)\s*(ট্রায়াজ|ট্রায়াজ|সামারি|চেক)\s*(করো|কর)?",
+    r"\brun\s+(all\s+)?tests?\b",
+    r"(সব\s+)?টেস্ট\s*(রান|চালাও|করো)",
+    r"\b(click|double[- ]click|press\s*key|scroll)\s+on\b",
+    r"\binspect\s+(at[- ]spi|desktop|screen\s*elements)\b",
 ]
 
 SCREEN_QA_PATTERNS = [
@@ -82,10 +86,15 @@ def query_live_weather(city: str = "Dhaka") -> Optional[str]:
 
 
 class ConversationalMind:
-    """Classifies user messages and generates conversational responses."""
+    """Stateful multi-turn conversational brain and intent router."""
 
-    def __init__(self, owner_name: str = "Khairul Islam Emon"):
+    def __init__(
+        self,
+        owner_name: str = "Khairul Islam Emon",
+        session_manager: Optional[SessionManager] = None,
+    ):
         self.owner_name = owner_name
+        self.session_manager = session_manager or global_session_manager
         try:
             from igris.core.config import AppConfig
             AppConfig.load()
@@ -94,88 +103,82 @@ class ConversationalMind:
 
     def classify_intent(self, text: str) -> UserIntent:
         """Determines the user's operational intent from text."""
-        # Normalize: strip punctuation and whitespace
-        cleaned = re.sub(r"[?,.!।]", "", text).strip().lower()
+        cleaned = text.strip().lower()
 
-        # Check screen Q&A first
+        # Check screen Q&A
         for pat in SCREEN_QA_PATTERNS:
             if re.search(pat, cleaned):
                 return UserIntent.SCREEN_QA
 
-        # Check conversational / greetings
-        for pat in CONVERSATIONAL_PATTERNS:
-            if re.search(pat, cleaned) or re.search(pat, text.lower()):
-                return UserIntent.CONVERSATIONAL
+        # Check explicit computer operating commands
+        for pat in OPERATIONAL_PATTERNS:
+            if re.search(pat, cleaned):
+                return UserIntent.OPERATIONAL_TASK
 
-        if cleaned in [
-            "hello", "hi", "hey", "hello igris", "hey igris",
-            "হ্যালো", "হাই", "কেমন আছো", "কেমন আছেন", "how are you",
-            "salam", "salam dao", "amake salam dao",
-        ]:
-            return UserIntent.CONVERSATIONAL
+        # Everything else is conversational / Q&A handled by multi-turn LLM
+        return UserIntent.CONVERSATIONAL
 
-        # Check general factual / information Q&A
-        for pat in GENERAL_QA_PATTERNS:
-            if re.search(pat, cleaned) or re.search(pat, text.lower()):
-                return UserIntent.GENERAL_QA
-
-        return UserIntent.OPERATIONAL_TASK
-
-    def respond_conversational(self, text: str) -> str:
-        """Generates natural conversational response without OS tool side-effects."""
-        cleaned = text.strip().lower()
-
-        # Dedicated Islamic Greeting Response (for "salam", "amake salam dao", etc.)
-        if any(w in cleaned for w in ["salam", "সালাম", "assalam", "alaikum"]):
-            return (
-                f"ওয়ালাইকুম আসসালাম ওয়া রাহমাতুল্লাহি ওয়া বারাকাতুহু, {self.owner_name} স্যার! "
-                "আমি ইগ্রিস (Igris), আপনার পার্সোনাল এআই কো-পাইলট। আপনার দিনটি শুভ ও বরকতময় হোক। বলুন আজ কীভাবে সহায়তা করতে পারি?"
-            )
-
+    def generate_multi_turn_reply(self, session: ChatSession, current_text: str) -> str:
+        """Generate contextual response using complete session history via Google GenAI SDK."""
         api_key = os.getenv("GEMINI_API_KEY")
-        if api_key:
-            try:
-                from google import genai
-                client = genai.Client(api_key=api_key)
-                system_instruction = (
-                    f"You are Igris, an intelligent, polite personal AI Co-Pilot for {self.owner_name}. "
-                    "Always explicitly introduce or refer to yourself as Igris (ইগ্রিস in Bengali). "
-                    "Respond warmly, concisely, and naturally (1-2 sentences) in the same language as the user (Bengali or English). "
-                    "Do not use markdown headers or bullet points."
-                )
-                for mod in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash"]:
-                    try:
-                        resp = client.models.generate_content(
-                            model=mod,
-                            contents=[system_instruction + "\n\nUser: " + text],
-                        )
-                        if resp and resp.text:
-                            return resp.text.strip()
-                    except Exception as model_err:
-                        logger.debug("Model %s generation failed: %s", mod, model_err)
-                        continue
-            except Exception as e:
-                logger.debug("Gemini conversational greeting failed: %s", e)
-
-        # Bengali greetings fallback
-        if any(w in cleaned for w in ["হ্যালো", "হাই", "কেমন", "নমস্কার", "kemon"]):
+        if not api_key:
             return (
-                f"হ্যালো মাস্টার {self.owner_name}! আমি ইগ্রিস (Igris), আপনার সুপারভাইজড পার্সোনাল এআই অ্যাসিস্ট্যান্ট। "
-                "আমি কীভাবে আপনাকে সাহায্য করতে পারি? আপনার নির্দেশ অনুযায়ী কাজ প্রস্তুত করতে আমি প্রস্তুত।"
+                f"হ্যালো {self.owner_name} স্যার! আমি আপনার এআই কো-পাইলট ইগ্রিস। "
+                "এই মুহূর্তে আমার এআই মডেল কনফিগারেশন কী (GEMINI_API_KEY) পাওয়া যায়নি, অনুগ্রহ করে এপিআই কী সক্রিয় করুন।"
             )
 
-        # English greetings fallback
-        return (
-            f"Hello Master {self.owner_name}! I am Igris, your supervised AI operations assistant. "
-            "How can I assist you today? Give me an instruction and I will prepare the work for your review."
-        )
+        # Build multi-turn contents from session history
+        history_contents = session.get_history_for_gemini()
 
-    def respond_general_qa(self, text: str) -> str:
-        """Answers general factual queries directly via text without OS side-effects."""
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=api_key)
+
+            for mod in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]:
+                try:
+                    resp = client.models.generate_content(
+                        model=mod,
+                        contents=history_contents,
+                        config=types.GenerateContentConfig(
+                            system_instruction=SYSTEM_INSTRUCTION,
+                            temperature=0.7,
+                        ),
+                    )
+                    if resp and resp.text:
+                        reply = resp.text.strip()
+                        # Record assistant response in session memory
+                        session.add_model_message(reply)
+                        return reply
+                except Exception as model_err:
+                    logger.debug("Model %s multi-turn generation failed: %s", mod, model_err)
+                    continue
+
+        except Exception as exc:
+            logger.error("Multi-turn Gemini call error: %s", exc)
+
+        # Fallback if network or model temporarily unavailable
+        fallback_msg = (
+            f"{self.owner_name} স্যার, আপনার বার্তাটি পেয়েছি। "
+            "এই মুহূর্তে এআই মডেল নেটওয়ার্ক লেটেন্সির কারণে বিস্তারিত উত্তর আনতে কিছুটা সময় লাগছে। "
+            "অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।"
+        )
+        session.add_model_message(fallback_msg)
+        return fallback_msg
+
+    def respond_conversational(self, text: str, session_id: Optional[str] = None) -> str:
+        """Handle conversational turns with full session memory."""
+        session = self.session_manager.get_or_create_session(session_id or "default-session")
+        session.add_user_message(text)
+        return self.generate_multi_turn_reply(session, text)
+
+    def respond_general_qa(self, text: str, session_id: Optional[str] = None) -> str:
+        """Handle factual Q&A turns with live tools and full session memory."""
         cleaned = text.strip().lower()
         is_bengali = any("\u0980" <= c <= "\u09ff" for c in text)
 
-        # 1. Weather / temperature queries
+        # Check live weather fast-path
         weather_regex = r"(temp[ea]?r[ea]?tur[ea]?|weather|forecast|climate|rain|cold|hot|warm|তাপমাত্রা|আবহাওয়া|গরম|বৃষ্টি)"
         if re.search(weather_regex, cleaned):
             city = "Dhaka"
@@ -186,68 +189,24 @@ class ConversationalMind:
 
             weather_data = query_live_weather(city)
             if weather_data:
-                if is_bengali:
-                    return f"বর্তমানে {city}-তে আবহাওয়া: {weather_data}।"
-                return f"Currently in {city}, the weather is {weather_data}."
-            else:
-                if is_bengali:
-                    return f"{city}-তে বর্তমান তাপমাত্রা আনুমানিক ২৪°C।"
-                return f"Currently in {city}, the temperature is approximately 24°C."
-
-        # 2. General knowledge queries via Gemini Cascade
-        api_key = os.getenv("GEMINI_API_KEY")
-        if api_key:
-            try:
-                from google import genai
-                client = genai.Client(api_key=api_key)
-                system_instruction = (
-                    f"You are Igris, an intelligent, polite AI Co-Pilot for {self.owner_name}. "
-                    "Provide a concise, direct, helpful 1-2 sentence conversational answer to the user's question without markdown headers. "
-                    "Respond in the exact same language (Bengali or English) as the user."
+                reply = (
+                    f"বর্তমানে {city}-তে আবহাওয়া: {weather_data}।"
+                    if is_bengali
+                    else f"Currently in {city}, the weather is {weather_data}."
                 )
-                for mod in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash"]:
-                    try:
-                        resp = client.models.generate_content(
-                            model=mod,
-                            contents=[system_instruction + "\n\nUser Question: " + text],
-                        )
-                        if resp and resp.text:
-                            return resp.text.strip()
-                    except Exception as model_err:
-                        logger.debug("Model %s generation failed: %s", mod, model_err)
-                        continue
-            except Exception as e:
-                logger.debug("Gemini direct Q&A error: %s", e)
+                session = self.session_manager.get_or_create_session(session_id or "default-session")
+                session.add_user_message(text)
+                session.add_model_message(reply)
+                return reply
 
-        # 3. Graceful fallback (meaningful and polite, no mechanical repetition)
-        if is_bengali or any(w in cleaned for w in ["ki", "kno", "kothay", "bolo", "tumi"]):
-            return (
-                f"স্যার, আপনার প্রশ্নের উত্তর প্রদানে কোনো ব্রাউজার ওপেন করার প্রয়োজন নেই। "
-                "এই মুহূর্তে নেটওয়ার্ক বা এআই মডেল রেসপন্স বিলম্বিত হওয়ায় আমি সরাসরি টেক্সটটি আনতে পারছি না, অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।"
-            )
-        return (
-            f"Regarding your question: Answer is delivered directly without launching browser tabs. "
-            "Please retry in a moment if network latency occurred."
-        )
+        # All other factual/knowledge queries route into multi-turn LLM
+        return self.respond_conversational(text, session_id=session_id)
 
-    def route_request(self, text: str) -> Dict[str, Any]:
-        """Routes inbound request into appropriate handling pipeline."""
+    def route_request(self, text: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+        """Routes inbound request into conversational multi-turn brain or computer operations."""
         intent = self.classify_intent(text)
 
-        if intent in (UserIntent.CONVERSATIONAL, UserIntent.GENERAL_QA):
-            if intent == UserIntent.CONVERSATIONAL:
-                response_text = self.respond_conversational(text)
-            else:
-                response_text = self.respond_general_qa(text)
-
-            return {
-                "intent": intent,
-                "mode": TaskMode.CONVERSATIONAL,
-                "response": response_text,
-                "execute_os_actions": False,
-            }
-
-        elif intent == UserIntent.SCREEN_QA:
+        if intent == UserIntent.SCREEN_QA:
             return {
                 "intent": UserIntent.SCREEN_QA,
                 "mode": TaskMode.CONVERSATIONAL,
@@ -255,10 +214,24 @@ class ConversationalMind:
                 "execute_os_actions": False,
             }
 
-        else:
+        elif intent == UserIntent.OPERATIONAL_TASK:
+            # Record user command in session memory for conversational continuity
+            session = self.session_manager.get_or_create_session(session_id or "default-session")
+            session.add_user_message(text)
+            session.add_model_message(f"Starting computer operational task for: '{text}'")
             return {
                 "intent": UserIntent.OPERATIONAL_TASK,
                 "mode": TaskMode.WORK,
                 "response": None,
                 "execute_os_actions": True,
+            }
+
+        else:
+            # Conversational / Q&A / Memory Retrieval
+            response_text = self.respond_conversational(text, session_id=session_id)
+            return {
+                "intent": UserIntent.CONVERSATIONAL,
+                "mode": TaskMode.CONVERSATIONAL,
+                "response": response_text,
+                "execute_os_actions": False,
             }

@@ -52,16 +52,24 @@
 
 ---
 
-## 3. Modified & Created Files in Conversational & Tab-Storm Safety Fix
+## 3. Modified & Created Files in Stateful Multi-Turn Conversational Brain Overhaul
 
-- `apps/core-engine/src/igris/brain/conversational_mind.py` (Added Banglish/Bengali conversational greeting patterns, Islamic Salam routing, and Gemini 3.5 Flash Lite cascade)
-- `apps/core-engine/src/igris/brain/planner.py` (Hardened `_detect_tab_storm` and `_is_stuck` against repetitive terminal browser loops and consecutive identical actions)
-- `apps/core-engine/src/igris/brain/dispatcher.py` (Included executed shell command string in `details` for downstream loop detection)
-- `apps/core-engine/src/igris/brain/vlm_client.py` (Updated default VLM model to `gemini-3.5-flash-lite`)
-- `apps/companion-web/index.html` (Added Ghost Mode standby badge overlay & cache-busted v2.2)
-- `apps/companion-web/css/style.css` (Added styling for `.ghost-standby-banner` & cache-busted v2.2)
-- `apps/companion-web/js/app.js` (Added standby overlay toggle, instant mode switching, and screen preview refresh)
-- `apps/core-engine/tests/brain/test_conversational_mind.py` (Added Banglish, Islamic salam, and Bengali Q&A test cases)
-- `apps/core-engine/tests/brain/test_stuck_detection.py` (Added terminal browser loop and consecutive terminal stuck tests)
-- `docs/phases/phase-5.md` (Updated)
-- `.agents/memory/HANDOVER.md` (Updated)
+- `apps/core-engine/src/igris/brain/session_memory.py` (Created `ChatMessage`, `ChatSession` with sliding window compaction, and multi-session `SessionManager` / `global_session_manager`)
+- `apps/core-engine/src/igris/brain/conversational_mind.py` (Replaced brittle single-turn regex with LLM-native multi-turn dialogue memory via Google GenAI SDK; grounded persona addressing user as "ইমন স্যার" without subservient terms like "মালিক")
+- `apps/core-engine/src/igris/remote/protocol.py` (Added `session_id: Optional[str] = Field(default="default-session")` to `TaskCommand`)
+- `apps/core-engine/src/igris/remote/gateway.py` (Added `/api/chat/history` and `DELETE /api/chat/session/{session_id}` REST endpoints; wired `session_id` into REST and WebSocket execution flows; added Xvfb auto-startup and graceful JPEG standby fallback on `/api/screen/preview`)
+- `apps/companion-web/index.html` (Added `🔄 New Chat` reset session button; cache-busted CSS and JS to `v=2.4`)
+- `apps/companion-web/css/style.css` (Added styling for `.user-message-bubble`, `.user-bubble-header`, `.user-bubble-body`, and `.reset-chat-btn`)
+- `apps/companion-web/js/app.js` (Implemented `addUserMessageBubble()`, `loadChatHistory()`, `localStorage` session ID persistence, `resetChatBtn` reset handler, and wired `session_id` into WebSocket task command payloads)
+- `apps/core-engine/tests/brain/test_session_memory.py` (5/5 unit tests verifying message schemas, session sliding window compaction, dictionary serialization, and session manager isolation)
+- `apps/core-engine/tests/brain/test_conversational_mind.py` (5/5 unit tests verifying intent classification, screen QA, operational task execution flags, dialogue routing, and 4-turn dialogue memory retention)
+- Total Monorepo Test Scorecard: **149 passed, 0 failed, 100% green in 12.06s**.
+
+---
+
+## 4. Current Service State
+
+- Gateway daemon running on `http://0.0.0.0:8000` (task `task-2751`, PID 21047).
+- Desktop Command Center accessible at `http://localhost:8000`.
+- Conversational brain retains context across sequential turns and resolves follow-ups accurately (e.g. "সেগুলো কি কি?", "আমি প্রথমে কি জিজ্ঞেস করেছিলাম?").
+- Git Safety: No autonomous git commits executed. User confirmation required for staging and commit.

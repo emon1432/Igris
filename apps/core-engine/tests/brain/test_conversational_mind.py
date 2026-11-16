@@ -1,21 +1,37 @@
-"""Unit Tests for Conversational Mind Intent Router."""
+"""Unit Tests for Stateful Conversational Mind Intent Router."""
 
+from unittest.mock import MagicMock, patch
 import pytest
 from igris.brain.conversational_mind import ConversationalMind, UserIntent
+from igris.brain.session_memory import SessionManager
 
 
-def test_conversational_mind_greetings():
+def test_conversational_mind_intent_classification():
+    """Verify intent classification accurately segregates dialogue from actions."""
     mind = ConversationalMind()
 
-    for greeting in ["hello", "Hello", "hi", "Hey Igris", "হ্যালো", "কেমন আছো?"]:
-        routing = mind.route_request(greeting)
-        assert routing["intent"] == UserIntent.CONVERSATIONAL
-        assert routing["execute_os_actions"] is False
-        assert routing["response"] is not None
-        assert "Igris" in routing["response"] or "ইগ্রিস" in routing["response"]
+    # Conversational & Greetings
+    for text in ["hello", "Hey Igris", "কেমন আছো?", "amake salam dao", "তুমি কি বাংলায় কথা বলতে পারো?"]:
+        assert mind.classify_intent(text) == UserIntent.CONVERSATIONAL
+
+    # Screen Q&A
+    for text in ["what is on my screen", "স্ক্রিনে কী আছে?", "describe screen"]:
+        assert mind.classify_intent(text) == UserIntent.SCREEN_QA
+
+    # Operational tasks requiring OS/Browser execution
+    for text in [
+        "summarize my unread emails",
+        "deploy staging branch",
+        "open YouTube and search Plabon",
+        "open google-chrome",
+        "ব্রাউজার ওপেন করো",
+        "run all tests",
+    ]:
+        assert mind.classify_intent(text) == UserIntent.OPERATIONAL_TASK
 
 
-def test_conversational_mind_screen_qa():
+def test_conversational_mind_screen_qa_routing():
+    """Verify screen QA requests do not dispatch mutating OS actions."""
     mind = ConversationalMind()
 
     for query in ["what is on my screen", "স্ক্রিনে কী আছে?"]:
@@ -24,7 +40,8 @@ def test_conversational_mind_screen_qa():
         assert routing["execute_os_actions"] is False
 
 
-def test_conversational_mind_operational_task():
+def test_conversational_mind_operational_task_routing():
+    """Verify operational tasks correctly set execute_os_actions to True."""
     mind = ConversationalMind()
 
     for cmd in ["summarize my unread emails", "deploy staging branch", "open YouTube and search Plabon"]:
@@ -33,51 +50,57 @@ def test_conversational_mind_operational_task():
         assert routing["execute_os_actions"] is True
 
 
-def test_conversational_mind_weather_and_general_qa():
-    mind = ConversationalMind()
+def test_conversational_mind_dialogue_routing_and_memory():
+    """Verify conversational routing dispatches to multi-turn memory without OS actions."""
+    mgr = SessionManager()
+    mind = ConversationalMind(session_manager=mgr)
 
-    # User's exact query and variations
-    qa_queries = [
-        "what is the tempreture now in dhaka?",
-        "what is the weather today?",
-        "ঢাকায় বর্তমান তাপমাত্রা কত?",
-        "how to configure postgresql?",
-        "tell me about python asyncio",
-        "তুমি কি আমার সাথে বাংলায় কথা বলতে পারবে?",
-        "বাংলাদেশের রাজধানীর নাম কি?",
-    ]
-
-    for q in qa_queries:
-        routing = mind.route_request(q)
-        assert routing["intent"] == UserIntent.GENERAL_QA
-        assert routing["execute_os_actions"] is False
-        assert routing["response"] is not None
-        assert len(routing["response"]) > 5
-
-
-def test_conversational_mind_banglish_salam_and_greetings():
-    mind = ConversationalMind()
-
-    # Banglish greetings that previously fell through to OPERATIONAL_TASK
-    banglish_queries = [
-        "amake salam dao",
-        "salam dao",
-        "assalamu alaikum",
-        "salam",
-        "kemon acho",
-        "kemon achen",
-        "ki khobor",
-        "tumi ke",
-    ]
-
-    for q in banglish_queries:
-        routing = mind.route_request(q)
+    with patch.object(mind, "generate_multi_turn_reply", return_value="কেমন আছেন ইমন স্যার?"):
+        routing = mind.route_request("কেমন আছো?", session_id="test-sess-100")
         assert routing["intent"] == UserIntent.CONVERSATIONAL
         assert routing["execute_os_actions"] is False
-        assert routing["response"] is not None
+        assert "ইমন স্যার" in routing["response"]
 
-    # Check that "amake salam dao" receives the Islamic Salam greeting
-    salam_routing = mind.route_request("amake salam dao")
-    assert "সালাম" in salam_routing["response"] or "Salam" in salam_routing["response"]
+        # Verify session memory recorded user message
+        session = mgr.get_or_create_session("test-sess-100")
+        assert len(session.messages) >= 1
+        assert session.messages[0].content == "কেমন আছো?"
 
 
+def test_conversational_mind_multi_turn_retention():
+    """Verify multi-turn conversation retains consecutive dialogue context in memory."""
+    mgr = SessionManager()
+    mind = ConversationalMind(session_manager=mgr)
+
+    session_id = "multi-turn-eval"
+
+    # Turn 1
+    with patch.object(mind, "generate_multi_turn_reply", return_value="আমি ভালো আছি, ইমন স্যার!"):
+        res1 = mind.route_request("কেমন আছো?", session_id=session_id)
+        assert res1["execute_os_actions"] is False
+
+    # Turn 2
+    with patch.object(mind, "generate_multi_turn_reply", return_value="আমাকে পাইথন, ফাস্টএপিআই এবং জেমিনি দিয়ে তৈরি করা হয়েছে।"):
+        res2 = mind.route_request("তোমাকে কি কি টেকনোলজি দিয়ে বানানো হয়েছে?", session_id=session_id)
+        assert res2["execute_os_actions"] is False
+
+    # Turn 3: Follow-up question
+    with patch.object(mind, "generate_multi_turn_reply", return_value="সেগুলো হলো Python 3.10, FastAPI, Gemini API এবং Linux Xvfb।"):
+        res3 = mind.route_request("সেগুলো কি কি?", session_id=session_id)
+        assert res3["execute_os_actions"] is False
+
+    # Turn 4: Context recall
+    with patch.object(mind, "generate_multi_turn_reply", return_value="আপনি প্রথমে জিজ্ঞেস করেছিলেন, 'কেমন আছো?'"):
+        res4 = mind.route_request("আমি প্রথমে কি জিজ্ঞেস করেছিলাম?", session_id=session_id)
+        assert res4["execute_os_actions"] is False
+
+    # Audit session history turns
+    session = mgr.get_or_create_session(session_id)
+    history = session.get_history_for_gemini()
+    user_prompts = [h["parts"][0]["text"] for h in history if h["role"] == "user"]
+    assert user_prompts == [
+        "কেমন আছো?",
+        "তোমাকে কি কি টেকনোলজি দিয়ে বানানো হয়েছে?",
+        "সেগুলো কি কি?",
+        "আমি প্রথমে কি জিজ্ঞেস করেছিলাম?",
+    ]

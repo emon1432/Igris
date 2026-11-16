@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IGRIS • AI Operations Command Center</title>
-    <link rel="stylesheet" href="css/style.css?v=2.2">
+    <link rel="stylesheet" href="css/style.css?v=2.4">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 </head>
 <body class="command-center-body">
@@ -160,6 +160,9 @@
                             <div class="banner-badge">👻 ISOLATED GHOST DISPLAY (:99) - STANDBY</div>
                             <div class="banner-sub">Background workspace is active. To view your active physical screen, switch to <strong>Live Co-Pilot (:0)</strong> above.</div>
                         </div>
+                        <div class="wayland-notice-banner" id="wayland-notice-banner" style="display: none;">
+                            <span>ℹ️ Wayland Desktop: Physical screen capture on :0 is restricted by Wayland security. Ghost Mode (:99) is the recommended isolated workspace.</span>
+                        </div>
                         <img id="live-screen" src="" alt="Awaiting host screen preview..." class="screen-image">
                         <div id="screen-placeholder" class="screen-placeholder">
                             <div class="radar-scan"></div>
@@ -240,6 +243,7 @@
                         <input type="checkbox" id="autoscroll-toggle" checked>
                         <span>Auto-scroll</span>
                     </label>
+                    <button class="text-action-btn reset-chat-btn" id="reset-chat-btn" title="Clear conversational history & start a new session">🔄 New Chat</button>
                     <button class="text-action-btn" id="clear-logs-btn">Clear Stream</button>
                 </div>
             </aside>
@@ -315,6 +319,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=2.2"></script>
+    <script src="js/app.js?v=2.4"></script>
 </body>
 </html>

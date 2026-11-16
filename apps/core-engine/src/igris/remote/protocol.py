@@ -38,6 +38,7 @@ class TaskCommand(BaseModel):
     task_goal: str = Field(..., description="High-level autonomous objective for Igris")
     mode: str = Field(default="ghost", description="Execution mode: 'ghost' or 'live'")
     max_iterations: int = Field(default=15, description="Maximum ReAct steps allowed")
+    session_id: Optional[str] = Field(default="default-session", description="Session identifier for multi-turn conversational memory")
 
 
 class TaskUpdateMessage(BaseModel):
