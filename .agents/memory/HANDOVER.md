@@ -52,24 +52,25 @@
 
 ---
 
-## 3. Modified & Created Files in Stateful Multi-Turn Conversational Brain Overhaul
+## 3. Modified & Created Files in Persistent Long-Term Memory Engine Overhaul
 
-- `apps/core-engine/src/igris/brain/session_memory.py` (Created `ChatMessage`, `ChatSession` with sliding window compaction, and multi-session `SessionManager` / `global_session_manager`)
-- `apps/core-engine/src/igris/brain/conversational_mind.py` (Replaced brittle single-turn regex with LLM-native multi-turn dialogue memory via Google GenAI SDK; grounded persona addressing user as "ইমন স্যার" without subservient terms like "মালিক")
-- `apps/core-engine/src/igris/remote/protocol.py` (Added `session_id: Optional[str] = Field(default="default-session")` to `TaskCommand`)
-- `apps/core-engine/src/igris/remote/gateway.py` (Added `/api/chat/history` and `DELETE /api/chat/session/{session_id}` REST endpoints; wired `session_id` into REST and WebSocket execution flows; added Xvfb auto-startup and graceful JPEG standby fallback on `/api/screen/preview`)
-- `apps/companion-web/index.html` (Added `🔄 New Chat` reset session button; cache-busted CSS and JS to `v=2.4`)
-- `apps/companion-web/css/style.css` (Added styling for `.user-message-bubble`, `.user-bubble-header`, `.user-bubble-body`, and `.reset-chat-btn`)
-- `apps/companion-web/js/app.js` (Implemented `addUserMessageBubble()`, `loadChatHistory()`, `localStorage` session ID persistence, `resetChatBtn` reset handler, and wired `session_id` into WebSocket task command payloads)
-- `apps/core-engine/tests/brain/test_session_memory.py` (5/5 unit tests verifying message schemas, session sliding window compaction, dictionary serialization, and session manager isolation)
-- `apps/core-engine/tests/brain/test_conversational_mind.py` (5/5 unit tests verifying intent classification, screen QA, operational task execution flags, dialogue routing, and 4-turn dialogue memory retention)
-- Total Monorepo Test Scorecard: **149 passed, 0 failed, 100% green in 12.06s**.
+- `apps/core-engine/src/igris/brain/session_store.py` (Created `SqliteSessionStore` providing durable ACID storage for sessions and messages at `apps/core-engine/data/sessions.db`)
+- `apps/core-engine/src/igris/brain/session_memory.py` (Integrated `SqliteSessionStore` into `ChatSession` and `SessionManager`, guaranteeing zero loss of conversational context across daemon restarts and system reboots)
+- `apps/core-engine/src/igris/brain/conversational_mind.py` (Pure LLM-native multi-turn conversational brain directly backed by Google Gemini with anti-hallucination guardrails)
+- `apps/core-engine/src/igris/remote/protocol.py` (TaskCommand session ID support)
+- `apps/core-engine/src/igris/remote/gateway.py` (Added `GET /api/chat/sessions`, `/api/chat/history`, session deletion, Xvfb auto-start, screen standby fallback)
+- `apps/companion-web/index.html` & `style.css` & `js/app.js` (User bubbles, chat history restore, and `🔄 New Chat` reset session)
+- `apps/core-engine/tests/brain/test_session_store.py` (3/3 unit tests verifying table creation, insertion, chronological retrieval, process restart recovery, and session deletion)
+- `apps/core-engine/tests/brain/test_session_memory.py` (6/6 unit tests verifying in-RAM compaction, message schemas, and cross-instance SQLite persistence restoration)
+- `apps/core-engine/tests/brain/test_conversational_mind.py` (6/6 unit tests verifying intent classification, screen QA, operational task execution flags, multi-turn memory retention, and direct world knowledge routing)
+- Total Monorepo Test Scorecard: **154 passed, 0 failed, 100% green in 10.83s**.
 
 ---
 
 ## 4. Current Service State
 
-- Gateway daemon running on `http://0.0.0.0:8000` (task `task-2751`, PID 21047).
+- Gateway daemon running on `http://0.0.0.0:8000` (task `task-2947`, PID 35925).
 - Desktop Command Center accessible at `http://localhost:8000`.
-- Conversational brain retains context across sequential turns and resolves follow-ups accurately (e.g. "সেগুলো কি কি?", "আমি প্রথমে কি জিজ্ঞেস করেছিলাম?").
+- All conversation sessions and dialogue turns are durably persisted to `apps/core-engine/data/sessions.db`.
+- Live verified: After an abrupt `kill -9` process crash and daemon reboot, Igris accurately recalled the user's favorite framework (FastAPI) and color (Navy Blue).
 - Git Safety: No autonomous git commits executed. User confirmation required for staging and commit.

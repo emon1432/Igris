@@ -1,21 +1,16 @@
-"""Stateful Conversational Mind & LLM-Native Intent Routing Subsystem.
+"""Pure LLM-Native Stateful Conversational Mind & Intent Router.
 
-Solves the core user experience challenge:
-Provides full multi-turn conversational memory (ChatGPT / Gemini style) while reliably distinguishing
-natural human conversation, greetings, and factual Q&A from computer operating tasks.
-- Maintains multi-turn context across dialogue turns so follow-up references ('সেগুলো কি কি?',
-  'আমি প্রথমে কি জিজ্ঞেস করেছিলাম?') are resolved accurately.
-- Eliminates brittle regex matching for human speech.
-- Grounds Igris's authentic identity, tech stack, and respectful persona (created for Khairul Islam Emon).
-- Dispatches hands-on OS actions only when explicit operational tasks are requested.
+Dispatches natural human conversation, knowledge Q&A, and dialogue directly to
+Google Gemini with full multi-turn session memory, while segregating explicit
+operating actions (desktop clicks, browser automation, git deploys).
+Zero brittle regex for conversation, zero static city lists, zero artificial limits.
 """
 
 from enum import Enum
 import logging
 import os
 import re
-import urllib.request
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from igris_protocol.models import TaskMode
 from igris.brain.session_memory import ChatSession, SessionManager, global_session_manager
 
@@ -23,8 +18,7 @@ logger = logging.getLogger("igris.brain.conversational_mind")
 
 
 class UserIntent(str, Enum):
-    CONVERSATIONAL = "CONVERSATIONAL"      # Greetings, chit-chat, assistant identity, multi-turn memory
-    GENERAL_QA = "GENERAL_QA"              # Weather, facts, explanations, calculations (zero clicks/tabs)
+    CONVERSATIONAL = "CONVERSATIONAL"      # Greetings, chit-chat, assistant identity, multi-turn dialogue, knowledge
     SCREEN_QA = "SCREEN_QA"                # Visual screen explanation (zero clicks)
     OPERATIONAL_TASK = "OPERATIONAL_TASK"  # Actionable computer task (desktop/browser/git)
 
@@ -43,11 +37,14 @@ CORE IDENTITY & REAL TECH STACK:
 
 CONVERSATIONAL BEHAVIOR & RULES:
 1. Always maintain complete contextual awareness of prior conversation turns in this session.
-2. When the user asks follow-up questions referencing prior messages (e.g. "সেগুলো কি কি?", "আরেকটু বিস্তারিত বলো", "আমি প্রথমে কি জিজ্ঞেস করেছিলাম?"), accurately resolve the context from your conversation history.
-3. Address the user respectfully and warmly as "ইমন স্যার" (or "ইমন ভাই"). NEVER use subservient or feudal titles like "মালিক" or "প্রভু".
-4. Speak natural, articulate, culturally grounded Bengali (বাংলা) or English matching the user's language.
+2. Address the user respectfully and warmly as "ইমন স্যার" (or "ইমন ভাই"). NEVER use subservient or feudal titles like "মালিক" or "প্রভু".
+3. Speak natural, articulate, culturally grounded Bengali (বাংলা) or English matching the user's language.
+4. When the user asks questions—whether about technology, Canada, Dhaka, world history, science, philosophy, coding, or everyday topics—answer intelligently, fluently, and directly using your broad AI knowledge, exactly like ChatGPT or Gemini.
 5. If the user asks about your technologies or identity, explain your authentic tech stack accurately with pride.
-6. If the user asks for factual info, explanations, or general knowledge (including Wikipedia topics), provide a concise, high-quality summary directly without opening browsers or taking OS actions.
+6. ANTI-HALLUCINATION & HONESTY RULES:
+   - NEVER pretend or claim to have edited backend codebase files, modified repository code, or bound external APIs in the background unless verified tools actually ran.
+   - For real-time factual questions (e.g. current weather at this exact minute), give your best helpful knowledge or explain normal seasonal conditions rather than claiming daytime sunshine at midnight.
+   - If the user confronts you about a past mistake, hallucination, or unperformed code change, candidly, humbly, and respectfully admit your mistake to "ইমন স্যার", apologize, and explain the limitation transparently without making excuses.
 """
 
 # Explicit operational action triggers that require hands-on OS/browser execution
@@ -71,22 +68,8 @@ SCREEN_QA_PATTERNS = [
 ]
 
 
-def query_live_weather(city: str = "Dhaka") -> Optional[str]:
-    """Fetch live weather string without launching browsers or subprocesses."""
-    try:
-        url = f"https://wttr.in/{city}?format=%C+%t"
-        req = urllib.request.Request(url, headers={"User-Agent": "curl/7.68.0"})
-        with urllib.request.urlopen(req, timeout=2.5) as resp:
-            data = resp.read().decode("utf-8").strip()
-            if data and "<html" not in data.lower():
-                return data
-    except Exception as exc:
-        logger.debug("Live weather query failed: %s", exc)
-    return None
-
-
 class ConversationalMind:
-    """Stateful multi-turn conversational brain and intent router."""
+    """Pure LLM-native multi-turn conversational brain and intent router."""
 
     def __init__(
         self,
@@ -115,11 +98,11 @@ class ConversationalMind:
             if re.search(pat, cleaned):
                 return UserIntent.OPERATIONAL_TASK
 
-        # Everything else is conversational / Q&A handled by multi-turn LLM
+        # Everything else is conversational / Q&A handled by pure multi-turn LLM
         return UserIntent.CONVERSATIONAL
 
     def generate_multi_turn_reply(self, session: ChatSession, current_text: str) -> str:
-        """Generate contextual response using complete session history via Google GenAI SDK."""
+        """Generate contextual response directly from Google Gemini using full session history."""
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             return (
@@ -127,7 +110,6 @@ class ConversationalMind:
                 "এই মুহূর্তে আমার এআই মডেল কনফিগারেশন কী (GEMINI_API_KEY) পাওয়া যায়নি, অনুগ্রহ করে এপিআই কী সক্রিয় করুন।"
             )
 
-        # Build multi-turn contents from session history
         history_contents = session.get_history_for_gemini()
 
         try:
@@ -148,7 +130,6 @@ class ConversationalMind:
                     )
                     if resp and resp.text:
                         reply = resp.text.strip()
-                        # Record assistant response in session memory
                         session.add_model_message(reply)
                         return reply
                 except Exception as model_err:
@@ -158,7 +139,6 @@ class ConversationalMind:
         except Exception as exc:
             logger.error("Multi-turn Gemini call error: %s", exc)
 
-        # Fallback if network or model temporarily unavailable
         fallback_msg = (
             f"{self.owner_name} স্যার, আপনার বার্তাটি পেয়েছি। "
             "এই মুহূর্তে এআই মডেল নেটওয়ার্ক লেটেন্সির কারণে বিস্তারিত উত্তর আনতে কিছুটা সময় লাগছে। "
@@ -173,35 +153,6 @@ class ConversationalMind:
         session.add_user_message(text)
         return self.generate_multi_turn_reply(session, text)
 
-    def respond_general_qa(self, text: str, session_id: Optional[str] = None) -> str:
-        """Handle factual Q&A turns with live tools and full session memory."""
-        cleaned = text.strip().lower()
-        is_bengali = any("\u0980" <= c <= "\u09ff" for c in text)
-
-        # Check live weather fast-path
-        weather_regex = r"(temp[ea]?r[ea]?tur[ea]?|weather|forecast|climate|rain|cold|hot|warm|তাপমাত্রা|আবহাওয়া|গরম|বৃষ্টি)"
-        if re.search(weather_regex, cleaned):
-            city = "Dhaka"
-            for c in ["dhaka", "chittagong", "sylhet", "rajshahi", "khulna", "barishal", "rangpur", "comilla"]:
-                if c in cleaned:
-                    city = c.capitalize()
-                    break
-
-            weather_data = query_live_weather(city)
-            if weather_data:
-                reply = (
-                    f"বর্তমানে {city}-তে আবহাওয়া: {weather_data}।"
-                    if is_bengali
-                    else f"Currently in {city}, the weather is {weather_data}."
-                )
-                session = self.session_manager.get_or_create_session(session_id or "default-session")
-                session.add_user_message(text)
-                session.add_model_message(reply)
-                return reply
-
-        # All other factual/knowledge queries route into multi-turn LLM
-        return self.respond_conversational(text, session_id=session_id)
-
     def route_request(self, text: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Routes inbound request into conversational multi-turn brain or computer operations."""
         intent = self.classify_intent(text)
@@ -215,7 +166,6 @@ class ConversationalMind:
             }
 
         elif intent == UserIntent.OPERATIONAL_TASK:
-            # Record user command in session memory for conversational continuity
             session = self.session_manager.get_or_create_session(session_id or "default-session")
             session.add_user_message(text)
             session.add_model_message(f"Starting computer operational task for: '{text}'")
@@ -227,7 +177,6 @@ class ConversationalMind:
             }
 
         else:
-            # Conversational / Q&A / Memory Retrieval
             response_text = self.respond_conversational(text, session_id=session_id)
             return {
                 "intent": UserIntent.CONVERSATIONAL,

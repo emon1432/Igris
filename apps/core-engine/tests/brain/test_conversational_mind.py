@@ -104,3 +104,31 @@ def test_conversational_mind_multi_turn_retention():
         "সেগুলো কি কি?",
         "আমি প্রথমে কি জিজ্ঞেস করেছিলাম?",
     ]
+
+
+def test_conversational_mind_world_knowledge_direct():
+    """Verify any world query (e.g. Canada weather/history) routes directly to Gemini without custom regex/scrapers."""
+    mgr = SessionManager()
+    mind = ConversationalMind(session_manager=mgr)
+    session = mgr.get_or_create_session("world-test")
+    session.add_user_message("কানাডার আবহাওয়া কেমন?")
+
+    with patch("os.getenv", return_value="dummy-key"), \
+         patch("google.genai.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client_cls.return_value = mock_client
+        mock_resp = MagicMock()
+        mock_resp.text = "কানাডায় এখন শীতকাল শুরু হয়েছে।"
+        mock_client.models.generate_content.return_value = mock_resp
+
+        reply = mind.generate_multi_turn_reply(session, "কানাডার আবহাওয়া কেমন?")
+        assert "কানাডায়" in reply
+
+        # Verify query was passed directly to Gemini model
+        call_kwargs = mock_client.models.generate_content.call_args[1]
+        passed_contents = call_kwargs["contents"]
+        last_turn_text = passed_contents[-1]["parts"][0]["text"]
+        assert "কানাডার আবহাওয়া কেমন?" in last_turn_text
+
+
+

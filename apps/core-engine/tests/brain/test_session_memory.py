@@ -112,3 +112,26 @@ def test_session_manager_lifecycle():
     removed = manager.remove_session("client-b")
     assert removed is True
     assert "client-b" not in manager.list_sessions()
+
+
+def test_session_manager_persistence_across_instances(tmp_path):
+    """Verify that a second SessionManager instance restores all messages from SQLite."""
+    from igris.brain.session_store import SqliteSessionStore
+
+    db_file = tmp_path / "mgr_restart.db"
+    store1 = SqliteSessionStore(db_path=str(db_file))
+    mgr1 = SessionManager(default_max_turns=20, store=store1)
+
+    sess1 = mgr1.get_or_create_session("reboot-session")
+    sess1.add_user_message("Remember this conversation across reboots.")
+    sess1.add_model_message("Confirmed, saved into persistent SQLite storage.")
+
+    # Simulate fresh boot with mgr2 on same db
+    store2 = SqliteSessionStore(db_path=str(db_file))
+    mgr2 = SessionManager(default_max_turns=20, store=store2)
+
+    sess2 = mgr2.get_or_create_session("reboot-session")
+    assert len(sess2.messages) == 2
+    assert sess2.messages[0].content == "Remember this conversation across reboots."
+    assert sess2.messages[1].content == "Confirmed, saved into persistent SQLite storage."
+

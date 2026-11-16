@@ -234,6 +234,11 @@ def create_gateway_app(
         session = mind.session_manager.get_or_create_session(session_id)
         return session.get_dict_summary()
 
+    @app.get("/api/chat/sessions")
+    async def list_chat_sessions():
+        """List all active and persisted conversation sessions."""
+        return {"sessions": mind.session_manager.list_sessions()}
+
     @app.delete("/api/chat/session/{session_id}")
     async def clear_chat_session(session_id: str):
         """Clear conversational memory buffer for given session."""
